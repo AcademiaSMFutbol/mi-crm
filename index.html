@@ -807,6 +807,143 @@ function gasRequest(action, data = {}) {
   });
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NORMALIZACIÓN — traduce estructura real de la Sheet
+   al formato interno que usa la app
+═══════════════════════════════════════════════════════════ */
+function normalizarDB(raw) {
+
+  // CLIENTES: NOMBRE + APELLIDOS → nombre completo, ID_CLIENTE → id
+  if (raw.clientes && raw.clientes.length) {
+    DB.clientes = raw.clientes.map(c => ({
+      id: String(c.ID_CLIENTE),
+      nombre: ((c.NOMBRE || '') + ' ' + (c.APELLIDOS || '')).trim().toUpperCase(),
+      email: c.EMAIL || '',
+      telefono: String(c['TELÉFONO 1'] || c['TELEFONO 1'] || ''),
+      direccion: c['DIRECCIÓN'] || c.DIRECCION || '',
+      cp: c['CÓDIGO POSTAL'] || '',
+      poblacion: c['POBLACIÓN'] || '',
+      iban: c.IBAN || '',
+      claveCliente: c['CLAVE CLIENTE'] || '',
+      activo: true,
+      _raw: c
+    }));
+  }
+
+  // ALUMNOS: NOMBRE + APELLIDOS, ACTIVO "SÍ"/"NO", CLAVE_CLIENTE
+  if (raw.alumnos && raw.alumnos.length) {
+    DB.alumnos = raw.alumnos.map(a => {
+      // Extraer ID numérico del cliente de CLAVE_CLIENTE ("3|HÉCTOR...")
+      const clienteId = a.CLAVE_CLIENTE ? String(a.CLAVE_CLIENTE).split('|')[0] : '';
+      const activo = String(a.ACTIVO || '').toUpperCase() === 'SÍ' || String(a.ACTIVO || '').toUpperCase() === 'SI';
+      return {
+        id: String(a.ID_ALUMNO),
+        nombre: ((a.NOMBRE || '') + ' ' + (a.APELLIDOS || '')).trim().toUpperCase(),
+        claveAlumno: a['CLAVE ALUMNO'] || '',
+        fechaNac: a['FECHA NACIMIENTO'] || '',
+        edad: a.EDAD || '',
+        categoria: a['CATEGORÍA'] || '',
+        curso: a.CURSO || '',
+        clienteId,
+        claveCliente: a.CLAVE_CLIENTE || '',
+        cesionImagen: a['CESIÓN IMAGEN'] || '',
+        observaciones: a.OBSERVACIONES || '',
+        totalInscripciones: a['TOTAL INSCRIPCIONES'] || 0,
+        activo,
+        // Campos que la app usa internamente (inferidos)
+        actividad: '',   // se rellena desde inscripciones
+        modalidad: '',
+        grupo: '',
+        camino: 0,
+        foto: '',
+        _raw: a
+      };
+    });
+
+    // Enriquecer alumnos con su inscripción activa más reciente
+    if (raw.inscripciones && raw.inscripciones.length) {
+      DB.alumnos.forEach(al => {
+        // Buscar inscripción activa para este alumno
+        const ins = raw.inscripciones.filter(i => {
+          const idFromClave = String(i['CLAVE ALUMNO'] || '').split('|')[0];
+          const activa = String(i.ACTIVA || '').toUpperCase() === 'SÍ' || String(i.ACTIVA || '').toUpperCase() === 'SI';
+          return idFromClave === al.id && activa;
+        });
+        if (ins.length) {
+          // Priorizar tecnificación sobre extraescolares
+          const tecni = ins.find(i => i.SERVICIO === 'TECNIFICACIÓN');
+          const ref = tecni || ins[0];
+          al.actividad = ref.SERVICIO || '';
+          al.modalidad = ref.MODALIDAD || '';
+          al.grupo = ref.CENTRO || '';
+        }
+      });
+    }
+  }
+
+  // INSCRIPCIONES: ID_INSCRIPCIÓN, ACTIVA "SÍ"/"NO"
+  if (raw.inscripciones && raw.inscripciones.length) {
+    DB.inscripciones = raw.inscripciones.map(i => {
+      const clienteId = String(i['CLAVE CLIENTE'] || '').split('|')[0];
+      const alumnoId  = String(i['CLAVE ALUMNO']  || '').split('|')[0];
+      const activa    = String(i.ACTIVA || '').toUpperCase() === 'SÍ' || String(i.ACTIVA || '').toUpperCase() === 'SI';
+      return {
+        id: String(i['ID_INSCRIPCIÓN'] || i.ID_INSCRIPCION || ''),
+        mes: i.MES || '',
+        fecha: i.FECHA || '',
+        clienteId,
+        alumnoId,
+        claveCliente: i['CLAVE CLIENTE'] || '',
+        claveAlumno: i['CLAVE ALUMNO'] || '',
+        servicio: i.SERVICIO || '',
+        modalidad: i.MODALIDAD || '',
+        igic: i.IGIC || 0,
+        claveInscripcion: i['CLAVE INSCRIPCIÓN'] || i['CLAVE INSCRIPCION'] || '',
+        precio: i.PRECIO || 0,
+        centro: i.CENTRO || '',
+        estado: activa ? 'ACTIVA' : 'BAJA',
+        _raw: i
+      };
+    });
+  }
+
+  // PAGOS: clave_alumno/clave_cliente → extraer ID numérico
+  if (raw.pagos && raw.pagos.length) {
+    DB.pagos = raw.pagos.map(p => {
+      const alumnoId  = String(p.clave_alumno  || '').split('|')[0];
+      const clienteId = String(p.clave_cliente || '').split('|')[0];
+      return {
+        id: String(p.id_pago || ''),
+        fecha: p.fecha || '',
+        mes: p.mes || '',
+        inscripcionId: String(p.clave_inscripcion || '').split('|')[0],
+        claveInscripcion: p.clave_inscripcion || '',
+        servicio: p.servicio || '',
+        modalidad: p.modalidad || '',
+        alumnoId,
+        clienteId,
+        claveAlumno: p.clave_alumno || '',
+        claveCliente: p.clave_cliente || '',
+        base: parseFloat(p.base_imponible) || 0,
+        igicPct: parseFloat(p.igic) || 0,        // campo normalizado del GAS
+        igicEur: parseFloat(p.igic) || 0,
+        descPct: 0,
+        descEur: parseFloat(p.descuento) || 0,
+        totalEsperado: parseFloat(p.total_esperado) || 0,
+        totalRecibido: parseFloat(p.total_recibido) || 0,
+        estado: p.estado_pago || 'PENDIENTE',
+        metodo: p.metodo_de_pago || '',
+        facturaId: String(p.id_factura || ''),
+        estadoPdf: p.estado_pdf || '',
+        _raw: p
+      };
+    });
+  }
+
+  // El resto de hojas (sesiones, personal, incidencias) se mantienen
+  // con datos demo hasta que existan en la Sheet
+}
+
 async function syncAll() {
   if (!GAS_URL) { showToast('Sin conexión GAS — usando datos demo', 'warning'); return; }
   showToast('Sincronizando con Google Sheets…', 'info');
@@ -814,9 +951,7 @@ async function syncAll() {
   try {
     const res = await gasRequest('GET_ALL');
     if (res.ok && res.data) {
-      Object.entries(res.data).forEach(([key, val]) => {
-        if (Array.isArray(val) && val.length > 0) DB[key] = val;
-      });
+      normalizarDB(res.data);
       renderCurrentPage();
       showToast('Datos sincronizados ✓', 'success');
       saveCacheLocal();
@@ -1001,22 +1136,29 @@ function renderCurrentPage() {
    HELPERS
 ═══════════════════════════════════════════════════════════ */
 const fmtEur = v => new Intl.NumberFormat('es-ES', {style:'currency',currency:'EUR'}).format(v||0);
-const fmtDate = d => d ? new Date(d).toLocaleDateString('es-ES') : '—';
-const fmtMonth = m => ({ enero:'Enero',febrero:'Febrero',marzo:'Marzo',abril:'Abril',mayo:'Mayo',junio:'Junio',julio:'Julio',agosto:'Agosto',septiembre:'Septiembre',octubre:'Octubre',noviembre:'Noviembre',diciembre:'Diciembre' })[m] || m;
-const getInitials = n => n ? n.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase() : '??';
+const fmtDate = d => { if (!d) return '—'; try { return new Date(d).toLocaleDateString('es-ES'); } catch(e) { return d; } };
+const fmtMonth = m => ({ enero:'Enero',febrero:'Febrero',marzo:'Marzo',abril:'Abril',mayo:'Mayo',junio:'Junio',julio:'Julio',agosto:'Agosto',septiembre:'Septiembre',octubre:'Octubre',noviembre:'Noviembre',diciembre:'Diciembre' })[String(m||'').toLowerCase()] || m || '—';
+const getInitials = n => n ? String(n).split(' ').filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase() : '??';
 const daysBetween = (a,b) => Math.ceil((b-a)/(1000*60*60*24));
 
-function getAlumno(id) { return DB.alumnos.find(a => a.id === id) || {}; }
-function getCliente(id) { return DB.clientes.find(c => c.id === id) || {}; }
+// Buscar siempre por string — IDs reales son números, la app los trata como string
+function getAlumno(id) { return DB.alumnos.find(a => String(a.id) === String(id)) || {}; }
+function getCliente(id) { return DB.clientes.find(c => String(c.id) === String(id)) || {}; }
+// Obtener mes actual en español
+function getMesActual() { return ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][new Date().getMonth()]; }
 
 function estadoPagoBadge(estado) {
+  const e = (estado || '').toUpperCase();
   const map = {
     'PAGADO': 'badge-green',
     'PENDIENTE': 'badge-orange',
+    'PENDIENTE DE COBRO': 'badge-orange',
     'IMPAGADO': 'badge-red',
     'PARCIAL': 'badge-blue',
+    'EXCESO': 'badge-blue',
+    'LISTO PARA EMITIR': 'badge-grey',
   };
-  return `<span class="badge ${map[estado]||'badge-grey'}">${estado}</span>`;
+  return `<span class="badge ${map[e]||'badge-grey'}">${estado||'—'}</span>`;
 }
 
 function actividadBadge(actividad) {
@@ -1032,7 +1174,7 @@ function actividadBadge(actividad) {
 }
 
 function updateBadges() {
-  const impagados = DB.pagos.filter(p => p.estado === 'IMPAGADO').length;
+  const impagados = DB.pagos.filter(p => (p.estado||'').toUpperCase() === 'IMPAGADO').length;
   const incAbiertas = DB.incidencias.filter(i => !i.resuelto).length;
   const badgeI = document.getElementById('badge-impagos');
   const badgeInc = document.getElementById('badge-incidencias');
@@ -1088,13 +1230,13 @@ function addTopbarBtn(label, fn, type = 'btn-primary', icon = '') {
    PAGE: DASHBOARD
 ═══════════════════════════════════════════════════════════ */
 function dashboard() {
-  const mesActual = 'marzo';
-  const pagosMes = DB.pagos.filter(p => p.mes === mesActual);
-  const totalCobrado = pagosMes.filter(p=>p.estado==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
-  const totalEsperado = pagosMes.reduce((s,p)=>s+p.totalEsperado,0);
-  const impagados = DB.pagos.filter(p=>p.estado==='IMPAGADO').length;
-  const alumnosActivos = DB.alumnos.filter(a=>a.activo).length;
-  const inscrActivas = DB.inscripciones.filter(i=>i.estado==='ACTIVA').length;
+  const mesActual = getMesActual();
+  const pagosMes = DB.pagos.filter(p => (p.mes||'').toLowerCase() === mesActual.toLowerCase());
+  const totalCobrado = pagosMes.filter(p=>(p.estado||'').toUpperCase()==='PAGADO').reduce((s,p)=>s+(parseFloat(p.totalRecibido)||0),0);
+  const totalEsperado = pagosMes.reduce((s,p)=>s+(parseFloat(p.totalEsperado)||0),0);
+  const impagados = DB.pagos.filter(p=>(p.estado||'').toUpperCase()==='IMPAGADO').length;
+  const alumnosActivos = DB.alumnos.filter(a=>a.activo===true||a.activo==='SÍ'||a.activo==='SI').length;
+  const inscrActivas = DB.inscripciones.filter(i=>i.estado==='ACTIVA'||String(i.ACTIVA||'').toUpperCase()==='SÍ'||String(i.ACTIVA||'').toUpperCase()==='SI').length;
 
   // Próximos cumpleaños
   const hoy = new Date();
@@ -1289,7 +1431,7 @@ function verCliente(id) {
   const c = getCliente(id);
   const alumnos = DB.alumnos.filter(a => a.clienteId === id);
   const pagos = DB.pagos.filter(p => p.clienteId === id);
-  const totalPagado = pagos.filter(p=>p.estado==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
+  const totalPagado = pagos.filter(p=>(p.estado||'').toUpperCase()==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
   openModal(`Cliente: ${c.nombre}`, `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
       <div><div style="font-size:11px;color:var(--grey-2);font-weight:500">Email</div><div style="margin-top:3px">${c.email||'—'}</div></div>
@@ -1399,7 +1541,7 @@ function alumnos() {
         <td>${actividadBadge(a.actividad)}</td>
         <td style="font-size:12px">${a.modalidad}</td>
         <td><div class="camino-badge">⭐ ${a.camino}</div></td>
-        <td>${a.activo?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-grey">Baja</span>'}</td>
+        <td>${(a.activo===true||a.activo)?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-grey">Baja</span>'}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();modalEditarAlumno('${a.id}')">Editar</button></td>
       </tr>`;
     }).join('') || `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🎓</div><div class="empty-title">Sin alumnos</div></div></td></tr>`;
@@ -1698,8 +1840,8 @@ async function guardarInscripcion() {
 function pagos() {
   addTopbarBtn('+ Registrar pago', () => modalNuevoPago(), 'btn-primary');
   let filtered = [...DB.pagos];
-  const totalIng = filtered.filter(p=>p.estado==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
-  const totalPend = filtered.filter(p=>p.estado!=='PAGADO').reduce((s,p)=>s+(p.totalEsperado-p.totalRecibido),0);
+  const totalIng = filtered.filter(p=>(p.estado||'').toUpperCase()==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
+  const totalPend = filtered.filter(p=>(p.estado||'').toUpperCase()!=='PAGADO').reduce((s,p)=>s+(p.totalEsperado-p.totalRecibido),0);
   const render = () => {
     const t = document.getElementById('pagos-table');
     if (!t) return;
@@ -1715,7 +1857,7 @@ function pagos() {
         <td>${estadoPagoBadge(p.estado)}</td>
         <td class="mono" style="font-size:11px;color:var(--grey-2)">${p.facturaId||'—'}</td>
         <td>
-          ${p.estado!=='PAGADO'?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();marcarPagado('${p.id}')">✓ Cobrar</button>`:''}
+          ${(p.estado||'').toUpperCase()!=='PAGADO'?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();marcarPagado('${p.id}')">✓ Cobrar</button>`:''}
         </td>
       </tr>`;
     }).join('') || `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💳</div><div class="empty-title">Sin pagos</div></div></td></tr>`;
@@ -1772,7 +1914,7 @@ function verPago(id) {
       <div><div class="kpi-label">Estado PDF</div><div style="margin-top:4px;font-size:12px">${p.estadoPdf||'—'}</div></div>
     </div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
-     ${p.estado!=='PAGADO'?`<button class="btn btn-primary" onclick="closeModal();marcarPagado('${p.id}')">✓ Marcar como cobrado</button>`:''}
+     ${(p.estado||'').toUpperCase()!=='PAGADO'?`<button class="btn btn-primary" onclick="closeModal();marcarPagado('${p.id}')">✓ Marcar como cobrado</button>`:''}
      <button class="btn btn-secondary" onclick="closeModal();generarFacturaPago('${p.id}')">🧾 Generar factura</button>`);
 }
 
@@ -1780,7 +1922,7 @@ async function marcarPagado(id) {
   const p = DB.pagos.find(x=>x.id===id); if (!p) return;
   const metodo = prompt('Método de pago:', 'BIZUM');
   if (!metodo) return;
-  p.estado = 'PAGADO';
+  p.estado = 'PAGADO'; p.estado_pago = 'PAGADO';
   p.totalRecibido = p.totalEsperado;
   p.metodo = metodo.toUpperCase();
   p.estadoPdf = 'LISTO PARA EMITIR';
@@ -1797,7 +1939,7 @@ function modalNuevoPago() {
       <div class="field-group full"><label class="field-label">Inscripción<span class="req">*</span></label>
         <select class="field-select" id="np-ins" onchange="cargarDatosIns()">
           <option value="">— Selecciona inscripción —</option>
-          ${DB.inscripciones.filter(i=>i.estado==='ACTIVA').map(i=>{ const a=getAlumno(i.alumnoId); return `<option value="${i.id}" data-precio="${i.precio}" data-servicio="${i.servicio}" data-alumno="${i.alumnoId}" data-cliente="${i.clienteId}">${a.nombre} · ${i.servicio}</option>`; }).join('')}
+          ${DB.inscripciones.filter(i=>i.estado==='ACTIVA'||String(i.ACTIVA||'').toUpperCase()==='SÍ'||String(i.ACTIVA||'').toUpperCase()==='SI').map(i=>{ const a=getAlumno(i.alumnoId); return `<option value="${i.id}" data-precio="${i.precio}" data-servicio="${i.servicio}" data-alumno="${i.alumnoId}" data-cliente="${i.clienteId}">${a.nombre} · ${i.servicio}</option>`; }).join('')}
         </select>
       </div>
       <div class="field-group"><label class="field-label">Mes</label>
@@ -2633,7 +2775,7 @@ function informes() {
   window.generarInformeGeneral = () => {
     const mes = 'Marzo 2026';
     const ps = DB.pagos;
-    const cobrado = ps.filter(p=>p.estado==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
+    const cobrado = ps.filter(p=>(p.estado||'').toUpperCase()==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
     showToast(`Informe de ${mes} generado ✓`, 'success');
     openModal(`Informe ${mes}`, `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
