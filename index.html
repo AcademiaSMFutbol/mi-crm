@@ -659,65 +659,15 @@ const CREDENTIALS = {
    DEMO DATA (fallback cuando no hay GAS URL)
 ═══════════════════════════════════════════════════════════ */
 function loadDemoData() {
-  DB.clientes = [
-    {id:'C001',nombre:'HÉCTOR RODRÍGUEZ GARRIDO',email:'hector@email.com',telefono:'622111000',direccion:'Las Palmas',activo:true},
-    {id:'C002',nombre:'CHRISTIAN TORRES BERRIEL',email:'christian@email.com',telefono:'622222000',direccion:'Las Palmas',activo:true},
-    {id:'C003',nombre:'FIONA LUKA',email:'fiona@email.com',telefono:'622333000',direccion:'Santa Brígida',activo:true},
-    {id:'C004',nombre:'JUAN ALBERTO',email:'juan@email.com',telefono:'622444000',direccion:'Las Palmas',activo:true},
-    {id:'C005',nombre:'YURENA SUÁREZ RAMOS',email:'yurena@email.com',telefono:'622555000',direccion:'Las Palmas',activo:true},
-    {id:'C006',nombre:'SARAY BRISSÓN PLAZA',email:'saray@email.com',telefono:'622666000',direccion:'Las Palmas',activo:true},
-  ];
-  DB.alumnos = [
-    {id:'A001',nombre:'ANTOINE RODRÍGUEZ',edad:11,fechaNac:'2013-05-15',clienteId:'C001',grupo:'Miércoles',actividad:'TECNIFICACIÓN',modalidad:'3 SESIONES / SEMANA',foto:'',camino:85,activo:true},
-    {id:'A002',nombre:'ANTONY RODRÍGUEZ',edad:9,fechaNac:'2015-03-22',clienteId:'C001',grupo:'Lunes',actividad:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',foto:'',camino:40,activo:true},
-    {id:'A003',nombre:'BRYAN TORRES HERNÁNDEZ',edad:12,fechaNac:'2012-08-10',clienteId:'C002',grupo:'Miércoles',actividad:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',foto:'',camino:60,activo:true},
-    {id:'A004',nombre:'LUKA XU',edad:10,fechaNac:'2014-12-01',clienteId:'C003',grupo:'Viernes',actividad:'TECNIFICACIÓN',modalidad:'SESIÓN SUELTA',foto:'',camino:15,activo:true},
-    {id:'A005',nombre:'ALBERTO GARCÍA SUÁREZ',edad:13,fechaNac:'2011-07-20',clienteId:'C004',grupo:'Miércoles',actividad:'TECNIFICACIÓN',modalidad:'2 SESIONES / SEMANA',foto:'',camino:110,activo:true},
-    {id:'A006',nombre:'HIMAR GARCÍA',edad:8,fechaNac:'2016-02-14',clienteId:'C004',grupo:'Viernes',actividad:'TECNIFICACIÓN',modalidad:'SESIÓN SUELTA',foto:'',camino:25,activo:true},
-    {id:'A007',nombre:'LEO DIALLO SUÁREZ',edad:7,fechaNac:'2017-09-05',clienteId:'C005',grupo:'N/A',actividad:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',foto:'',camino:30,activo:true},
-    {id:'A008',nombre:'ÁLVARO FALCÓN BRISSÓN',edad:8,fechaNac:'2016-04-18',clienteId:'C006',grupo:'N/A',actividad:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',foto:'',camino:55,activo:true},
-    {id:'A009',nombre:'AIRAM QUINTANILLA LORENZO',edad:9,fechaNac:'2015-11-30',clienteId:'C005',grupo:'N/A',actividad:'MULTIDEPORTE',modalidad:'MENSUALIDAD',foto:'',camino:70,activo:true},
-    {id:'A010',nombre:'JOSÉ SANTANA PIEDRA',edad:10,fechaNac:'2014-06-22',clienteId:'C005',grupo:'N/A',actividad:'MULTIDEPORTE',modalidad:'MENSUALIDAD',foto:'',camino:90,activo:true},
-  ];
-  DB.inscripciones = [
-    {id:'INS001',alumnoId:'A001',clienteId:'C001',servicio:'TECNIFICACIÓN',modalidad:'3 SESIONES / SEMANA',fechaAlta:'2026-01-01',estado:'ACTIVA',precio:144},
-    {id:'INS002',alumnoId:'A002',clienteId:'C001',servicio:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',fechaAlta:'2026-01-01',estado:'ACTIVA',precio:49.5},
-    {id:'INS003',alumnoId:'A003',clienteId:'C002',servicio:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',fechaAlta:'2026-01-01',estado:'ACTIVA',precio:55},
-    {id:'INS004',alumnoId:'A005',clienteId:'C004',servicio:'TECNIFICACIÓN',modalidad:'2 SESIONES / SEMANA',fechaAlta:'2026-01-01',estado:'ACTIVA',precio:110},
-    {id:'INS005',alumnoId:'A007',clienteId:'C005',servicio:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',fechaAlta:'2026-01-08',estado:'ACTIVA',precio:26},
-    {id:'INS006',alumnoId:'A008',clienteId:'C006',servicio:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',fechaAlta:'2026-01-08',estado:'ACTIVA',precio:26},
-  ];
-  DB.pagos = [
-    {id:'PAG0001',fecha:'2026-01-01',mes:'enero',inscripcionId:'INS001',servicio:'TECNIFICACIÓN',alumnoId:'A001',clienteId:'C001',base:139.81,igicPct:3,igicEur:4.19,descPct:10,descEur:16,totalEsperado:144,totalRecibido:144,estado:'PAGADO',metodo:'BIZUM',facturaId:'SM-26-0001',estadoPdf:'LISTO PARA EMITIR'},
-    {id:'PAG0002',fecha:'2026-01-01',mes:'enero',inscripcionId:'INS002',servicio:'TECNIFICACIÓN',alumnoId:'A002',clienteId:'C001',base:48.06,igicPct:3,igicEur:1.44,descPct:10,descEur:5.5,totalEsperado:49.5,totalRecibido:49.5,estado:'PAGADO',metodo:'BIZUM',facturaId:'SM-26-0001',estadoPdf:'LISTO PARA EMITIR'},
-    {id:'PAG0003',fecha:'2026-01-01',mes:'enero',inscripcionId:'INS003',servicio:'TECNIFICACIÓN',alumnoId:'A003',clienteId:'C002',base:53.4,igicPct:3,igicEur:1.6,descPct:0,descEur:0,totalEsperado:55,totalRecibido:55,estado:'PAGADO',metodo:'EFECTIVO',facturaId:'SM-26-0002',estadoPdf:'LISTO PARA EMITIR'},
-    {id:'PAG0004',fecha:'2026-01-01',mes:'enero',inscripcionId:'INS004',servicio:'TECNIFICACIÓN',alumnoId:'A005',clienteId:'C004',base:106.8,igicPct:3,igicEur:3.2,descPct:0,descEur:0,totalEsperado:110,totalRecibido:110,estado:'PAGADO',metodo:'BIZUM',facturaId:'SM-26-0004',estadoPdf:'LISTO PARA EMITIR'},
-    {id:'PAG0005',fecha:'2026-01-08',mes:'enero',inscripcionId:'INS005',servicio:'RECOGIDA TEMPRANA',alumnoId:'A007',clienteId:'C005',base:24.3,igicPct:7,igicEur:1.7,descPct:0,descEur:0,totalEsperado:26,totalRecibido:26,estado:'PAGADO',metodo:'BIZUM',facturaId:'SM-26-0006',estadoPdf:'LISTO PARA EMITIR'},
-    {id:'PAG0006',fecha:'2026-02-01',mes:'febrero',inscripcionId:'INS001',servicio:'TECNIFICACIÓN',alumnoId:'A001',clienteId:'C001',base:139.81,igicPct:3,igicEur:4.19,descPct:10,descEur:16,totalEsperado:144,totalRecibido:0,estado:'PENDIENTE',metodo:'',facturaId:'',estadoPdf:'PENDIENTE'},
-    {id:'PAG0007',fecha:'2026-02-01',mes:'febrero',inscripcionId:'INS003',servicio:'TECNIFICACIÓN',alumnoId:'A003',clienteId:'C002',base:53.4,igicPct:3,igicEur:1.6,descPct:0,descEur:0,totalEsperado:55,totalRecibido:0,estado:'IMPAGADO',metodo:'',facturaId:'',estadoPdf:'PENDIENTE'},
-    {id:'PAG0008',fecha:'2026-03-01',mes:'marzo',inscripcionId:'INS001',servicio:'TECNIFICACIÓN',alumnoId:'A001',clienteId:'C001',base:139.81,igicPct:3,igicEur:4.19,descPct:10,descEur:16,totalEsperado:144,totalRecibido:144,estado:'PAGADO',metodo:'TRANSFERENCIA',facturaId:'SM-26-0015',estadoPdf:'LISTO PARA EMITIR'},
-  ];
-  DB.sesiones = [
-    {id:'SES001',fecha:'2026-03-25',grupo:'Miércoles',monitor:'Samy',numero:42,ubicacion:'Cancha La Atalaya',objetivo:'Control y conducción',alumnos:['A001','A003','A005']},
-    {id:'SES002',fecha:'2026-03-27',grupo:'Viernes',monitor:'Samy',numero:43,ubicacion:'Cuevas Torres',objetivo:'Pressing y recuperación',alumnos:['A002','A004','A006']},
-    {id:'SES003',fecha:'2026-03-22',grupo:'Miércoles',monitor:'Samy',numero:41,ubicacion:'Cancha La Atalaya',objetivo:'Juego en superioridad',alumnos:['A001','A003','A005']},
-  ];
-  DB.asistencias = [
-    {id:'ASI001',sesionId:'SES001',alumnoId:'A001',presente:true,evaluacion:{tecnica:4,decision:3,competitividad:5,actitud:5,cansancio:'Bien'},puntosCamino:10},
-    {id:'ASI002',sesionId:'SES001',alumnoId:'A003',presente:true,evaluacion:{tecnica:3,decision:4,competitividad:3,actitud:4,cansancio:'Regular'},puntosCamino:10},
-    {id:'ASI003',sesionId:'SES001',alumnoId:'A005',presente:false,evaluacion:null,puntosCamino:0},
-    {id:'ASI004',sesionId:'SES002',alumnoId:'A002',presente:true,evaluacion:{tecnica:3,decision:3,competitividad:4,actitud:5,cansancio:'Bien'},puntosCamino:20},
-    {id:'ASI005',sesionId:'SES002',alumnoId:'A004',presente:true,evaluacion:{tecnica:2,decision:3,competitividad:3,actitud:4,cansancio:'Cansado'},puntosCamino:10},
-    {id:'ASI006',sesionId:'SES002',alumnoId:'A006',presente:true,evaluacion:{tecnica:4,decision:4,competitividad:4,actitud:5,cansancio:'Bien'},puntosCamino:10},
-  ];
-  DB.personal = [
-    {id:'PER001',nombre:'Samy Martín',rol:'Director / Entrenador',email:'academiasmfutbol@outlook.es',telefono:'609000000',certDelitos:'2025-01-15',certVence:'2026-01-15',activo:true},
-    {id:'PER002',nombre:'Monitor 1',rol:'Monitor Extraescolares',email:'monitor1@sm.es',telefono:'609000001',certDelitos:'2024-11-10',certVence:'2025-11-10',activo:true},
-    {id:'PER003',nombre:'Monitor 2',rol:'Monitor Extraescolares',email:'monitor2@sm.es',telefono:'609000002',certDelitos:'2025-03-20',certVence:'2026-03-20',activo:true},
-  ];
-  DB.incidencias = [
-    {id:'INC001',fecha:'2026-03-15',alumnoId:'A003',tipo:'Golpe',descripcion:'Pequeña caída durante el ejercicio. Sin herida. Familia notificada.',notificadoFamilia:true,resuelto:true},
-  ];
+  // Sin datos de prueba — la app requiere conexión con Google Sheets
+  DB.clientes = [];
+  DB.alumnos = [];
+  DB.inscripciones = [];
+  DB.pagos = [];
+  DB.sesiones = []; // Se carga desde hoja SESIONES en Google Sheets
+  DB.asistencias = []; // Se carga desde hoja ASISTENCIAS en Google Sheets
+  DB.personal = []; // Se carga desde hoja PERSONAL en Google Sheets
+  DB.incidencias = [];
   DB.servicios = [
     {id:'SRV001',nombre:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',precio:55,igic:3,activo:true},
     {id:'SRV002',nombre:'TECNIFICACIÓN',modalidad:'2 SESIONES / SEMANA',precio:110,igic:3,activo:true},
@@ -732,12 +682,7 @@ function loadDemoData() {
   DB.presupuestos = [
     {id:'PRE001',clienteId:'C003',fecha:'2026-03-01',descripcion:'Presupuesto 2 sesiones/semana',total:110,estado:'PENDIENTE'},
   ];
-  DB.extraescolares = [
-    {id:'EXT001',alumnoId:'A007',actividad:'RECOGIDA TEMPRANA',centro:'CEIP Escaleritas',monitor:'Monitor 1',camino:30,asistenciasMes:{1:true,2:true,3:false,4:true,5:true,6:false,7:true,8:true,9:true,10:false,11:true,12:true,13:true,14:false,15:true,16:true,17:true,18:false,19:true,20:true,21:true,22:false,23:true,24:true,25:true,26:false,27:true,28:true}},
-    {id:'EXT002',alumnoId:'A008',actividad:'RECOGIDA TEMPRANA',centro:'CEIP Escaleritas',monitor:'Monitor 1',camino:55,asistenciasMes:{1:true,2:true,3:true,4:true,5:true,6:false,7:true,8:true,9:true,10:true,11:true,12:true,13:true,14:false,15:true,16:true,17:true,18:true,19:true,20:true,21:true,22:false,23:true,24:true,25:true,26:true,27:true,28:true}},
-    {id:'EXT003',alumnoId:'A009',actividad:'MULTIDEPORTE',centro:'CEIP Escaleritas',monitor:'Monitor 2',camino:70,asistenciasMes:{1:true,2:false,3:true,4:true,5:true,6:false,7:true,8:true,9:false,10:true,11:true,12:true,13:false,14:false,15:true,16:true,17:false,18:true,19:true,20:true,21:true,22:false,23:true,24:true,25:false,26:true,27:true,28:true}},
-    {id:'EXT004',alumnoId:'A010',actividad:'MULTIDEPORTE',centro:'CEIP Escaleritas',monitor:'Monitor 2',camino:90,asistenciasMes:{1:true,2:true,3:true,4:true,5:true,6:true,7:true,8:true,9:true,10:true,11:true,12:true,13:true,14:false,15:true,16:true,17:true,18:true,19:true,20:true,21:true,22:true,23:true,24:true,25:true,26:true,27:true,28:true}},
-  ];
+  DB.extraescolares = []; // Se construye desde inscripciones CEIP Escaleritas
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -940,8 +885,67 @@ function normalizarDB(raw) {
     });
   }
 
-  // El resto de hojas (sesiones, personal, incidencias) se mantienen
-  // con datos demo hasta que existan en la Sheet
+  // PERSONAL — desde hoja PERSONAL (antes MONITORES)
+  if (raw.personal && raw.personal.length) {
+    DB.personal = raw.personal.map(p => {
+      const nombre = ((p.NOMBRE||'') + ' ' + (p.APELLIDOS||'')).trim() || p.NOMBRE || '';
+      const activo = String(p.ESTADO||'').toUpperCase() === 'ACTIVO' || String(p.ESTADO||'').toUpperCase() === 'SÍ' || String(p.ESTADO||'').toUpperCase() === 'SI' || p.ESTADO === '' || p.ESTADO === undefined;
+      const certDelitos = p.CERT_DELITOS || p['CERT. DELITOS'] || p.CERTIFICADO || '';
+      let certVence = p.CERT_VENCE || p['CERT. VENCE'] || p['FECHA VENCIMIENTO'] || '';
+      // Si no hay fecha de vencimiento, calcular +1 año desde emisión
+      if (!certVence && certDelitos) {
+        try { certVence = new Date(new Date(certDelitos).setFullYear(new Date(certDelitos).getFullYear()+1)).toISOString().split('T')[0]; } catch(e) {}
+      }
+      return {
+        id: String(p.ID_PERSONAL || p.ID || nombre),
+        nombre: nombre.toUpperCase(),
+        rol: p.ROL || p.CARGO || 'Monitor',
+        email: p.EMAIL || p['E-MAIL'] || '',
+        telefono: String(p.TELEFONO || p['TELÉFONO'] || p.TEL || ''),
+        certDelitos,
+        certVence,
+        activo,
+        _raw: p
+      };
+    });
+  }
+
+  // EXTRAESCOLARES — construir desde inscripciones activas en CEIP ESCALERITAS
+  // Servicios extraescolares = cualquier cosa en CEIP ESCALERITAS excepto COORD.
+  const SERVICIOS_EXTRA = ['RECOGIDA TEMPRANA','MULTIDEPORTE','MULTIDEPORTE ADAPTADO','INGLÉS','INGLES','BAILE','COORD. ACT. EXTRAESCOLARES'];
+  const CENTRO_EXTRA = 'CEIP ESCALERITAS';
+  
+  const inscrExtra = (raw.inscripciones || []).filter(i => {
+    const centro = String(i.CENTRO || '').toUpperCase();
+    const activa = String(i.ACTIVA || '').toUpperCase() === 'SÍ' || String(i.ACTIVA || '').toUpperCase() === 'SI';
+    const esExtra = centro.includes('ESCALERITAS');
+    const noCoord = !String(i.SERVICIO || '').toUpperCase().includes('COORD');
+    const alumnoId = String(i['CLAVE ALUMNO'] || '').split('|')[0];
+    const esAlumnoReal = alumnoId && alumnoId !== '68'; // excluir alumno ficticio de AMPA
+    return activa && esExtra && noCoord && esAlumnoReal;
+  });
+
+  // Agrupar por alumnoId + servicio (una fila por combinación)
+  const extraMap = {};
+  inscrExtra.forEach(i => {
+    const alumnoId = String(i['CLAVE ALUMNO'] || '').split('|')[0];
+    const key = alumnoId + '_' + (i.SERVICIO || '');
+    if (!extraMap[key]) {
+      extraMap[key] = {
+        id: String(i['ID_INSCRIPCIÓN'] || i.ID_INSCRIPCION || key),
+        alumnoId,
+        actividad: i.SERVICIO || '',
+        centro: i.CENTRO || CENTRO_EXTRA,
+        monitor: 'Monitor',
+        camino: 0,
+        asistenciasMes: {}
+      };
+    }
+  });
+  
+  if (Object.keys(extraMap).length > 0) {
+    DB.extraescolares = Object.values(extraMap);
+  }
 }
 
 async function syncAll() {
@@ -2333,52 +2337,68 @@ async function guardarSesion() {
 ═══════════════════════════════════════════════════════════ */
 function extraescolares() {
   const role = currentUser.role;
-  const actividades = [...new Set(DB.extraescolares.map(e=>e.actividad))];
-  const resumen = actividades.map(act => {
-    const es = DB.extraescolares.filter(e=>e.actividad===act);
-    const totalDias = es.reduce((s,e)=>s+Object.keys(e.asistenciasMes).length,0);
-    const presentes = es.reduce((s,e)=>s+Object.values(e.asistenciasMes).filter(Boolean).length,0);
-    return { act, alumnos: es.length, pct: totalDias ? Math.round(presentes/totalDias*100) : 0 };
+  // Fuente de verdad: inscripciones activas en CEIP ESCALERITAS, excluyendo COORD y alumno AMPA (id 68)
+  const EXCLUIR_SERVICIOS = ['COORD. ACT. EXTRAESCOLARES','COORD ACT EXTRAESCOLARES'];
+  const inscrExtra = DB.inscripciones.filter(i => {
+    const centro = String(i.centro || i.CENTRO || '').toUpperCase();
+    const servicio = String(i.servicio || i.SERVICIO || '').toUpperCase();
+    const activa = i.estado === 'ACTIVA';
+    const alumnoId = String(i.alumnoId || '');
+    return centro.includes('ESCALERITAS') && activa && !EXCLUIR_SERVICIOS.includes(servicio) && alumnoId !== '68';
   });
+
+  // Agrupar: un alumno puede tener varias actividades — mostrar una fila por inscripción activa
+  const actividades = [...new Set(inscrExtra.map(i => i.servicio || i.SERVICIO || ''))].filter(Boolean);
+  const resumen = actividades.map(act => ({
+    act,
+    alumnos: inscrExtra.filter(i => (i.servicio || i.SERVICIO || '') === act).length
+  }));
 
   addTopbarBtn('Informe AMPA', () => generarInformeAMPA(), 'btn-secondary', '📄 ');
   if (role === 'ADMIN') addTopbarBtn('Registrar asistencia', () => modalAsistenciaExtra(), 'btn-primary', '+ ');
 
+  const mesActual = getMesActual();
   document.getElementById('page-content').innerHTML = `
     <div class="kpi-grid">
       ${resumen.map(r=>`
         <div class="kpi-card">
           <div class="kpi-label">${r.act}</div>
           <div class="kpi-value">${r.alumnos} alumnos</div>
-          <div class="kpi-delta ${r.pct<70?'down':r.pct<85?'':'up'}">Asistencia: ${r.pct}%</div>
+          <div class="kpi-delta">CEIP Escaleritas</div>
         </div>`).join('')}
+      <div class="kpi-card">
+        <div class="kpi-label">Total inscritos</div>
+        <div class="kpi-value green">${inscrExtra.length}</div>
+        <div class="kpi-delta">inscripciones activas</div>
+      </div>
     </div>
 
     <div class="card">
-      <div class="card-header"><span>📋</span><div class="card-title">Control de asistencia · Marzo 2026</div></div>
+      <div class="card-header">
+        <span>📋</span>
+        <div class="card-title">Alumnos CEIP Escaleritas · ${fmtMonth(mesActual)}</div>
+        <span style="margin-left:auto;font-size:12px;color:var(--grey-2)">${inscrExtra.length} inscripciones activas</span>
+      </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Alumno</th><th>Actividad</th><th>Centro</th><th>Monitor</th><th>Asistencia marzo</th><th>% Mes</th><th>Camino SM</th></tr></thead>
+        <thead><tr><th>Alumno</th><th>Actividad</th><th>Modalidad</th><th>Familia</th><th>Precio</th></tr></thead>
         <tbody>
-          ${DB.extraescolares.map(e => {
-            const a = getAlumno(e.alumnoId);
-            const dias = Object.keys(e.asistenciasMes).length;
-            const pres = Object.values(e.asistenciasMes).filter(Boolean).length;
-            const pct = dias ? Math.round(pres/dias*100) : 0;
-            return `<tr onclick="verExtraAlumno('${e.id}')">
-              <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm">${getInitials(a.nombre)}</div>${a.nombre||'—'}</div></td>
-              <td>${actividadBadge(e.actividad)}</td>
-              <td style="font-size:12px">${e.centro}</td>
-              <td style="font-size:12px">${e.monitor}</td>
-              <td>
-                <div style="display:flex;align-items:center;gap:6px">
-                  <div class="progress-bar" style="width:80px"><div class="progress-fill ${pct<60?'danger':pct<80?'warn':''}" style="width:${pct}%"></div></div>
-                  <span style="font-size:12px">${pres}/${dias}d</span>
-                </div>
-              </td>
-              <td><strong>${pct}%</strong></td>
-              <td><div class="camino-badge">⭐ ${e.camino}</div></td>
+          ${inscrExtra.length ? inscrExtra.map(i => {
+            const a = getAlumno(i.alumnoId);
+            const c = getCliente(i.clienteId);
+            const nombreAlumno = a.nombre || String(i.claveAlumno || '').split('|').slice(1).join('|') || '—';
+            const nombreCliente = c.nombre || String(i.claveCliente || '').split('|').slice(1).join('|') || '—';
+            return `<tr>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div class="avatar avatar-sm">${getInitials(nombreAlumno)}</div>
+                <div><div style="font-weight:500">${nombreAlumno}</div>
+                <div style="font-size:11px;color:var(--grey-2)">${a.curso||''}</div></div>
+              </div></td>
+              <td>${actividadBadge(i.servicio || i.SERVICIO || '—')}</td>
+              <td style="font-size:12px">${i.modalidad || i.MODALIDAD || '—'}</td>
+              <td style="font-size:12px;color:var(--grey-2)">${nombreCliente}</td>
+              <td><strong>${i.precio || i.PRECIO ? fmtEur(parseFloat(i.precio || i.PRECIO)||0) : '—'}</strong></td>
             </tr>`;
-          }).join('')}
+          }).join('') : '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🏫</div><div class="empty-title">Sin alumnos en CEIP Escaleritas</div><div class="empty-desc">Verifica que hay inscripciones activas en la hoja INSCRIPCIONES.</div></div></td></tr>'}
         </tbody>
       </table></div>
     </div>`;
@@ -2509,10 +2529,18 @@ async function guardarAsistenciaExtra() {
    PAGE: ASISTENCIA (SM FÚTBOL)
 ═══════════════════════════════════════════════════════════ */
 function asistencia() {
-  const sesionActiva = DB.sesiones[DB.sesiones.length-1];
-  if (currentUser.role === 'MONITOR' || !sesionActiva) {
-    // Vista rápida de pase de lista
-    const alumnosFutbol = DB.alumnos.filter(a=>a.activo&&a.actividad==='TECNIFICACIÓN');
+  // Asistencia = pase de lista rápido para TECNIFICACIÓN (monitores y admin)
+  // Alumnos de tecnificación (inscripción activa TECNIFICACIÓN)
+  const idsTecni = new Set(
+    DB.inscripciones
+      .filter(i => i.estado==='ACTIVA' && String(i.servicio||'').toUpperCase().includes('TECNIFICACIÓN'))
+      .map(i => String(i.alumnoId))
+  );
+  const alumnosFutbol = DB.alumnos.filter(a => {
+    const activo = a.activo===true || a.activo==='SÍ' || a.activo==='SI';
+    return activo && (idsTecni.has(String(a.id)) || a.actividad==='TECNIFICACIÓN');
+  });
+  if (true) {
     let estadoAsist = {};
     alumnosFutbol.forEach(a => { estadoAsist[a.id] = null; });
     document.getElementById('page-content').innerHTML = `
@@ -2547,8 +2575,6 @@ function asistencia() {
       const count = Object.values(estadoAsist).filter(v=>v===true).length;
       showToast(`Asistencia registrada: ${count} presentes ✓`, 'success');
     };
-  } else {
-    navigate('futbol');
   }
 }
 
@@ -2558,26 +2584,37 @@ function asistencia() {
 function personal() {
   addTopbarBtn('+ Añadir personal', () => modalNuevoPersonal(), 'btn-primary');
   const hoy = new Date();
+  const lista = DB.personal || [];
+  const rows = lista.map(p => {
+    let certClass = 'badge-grey';
+    let certLabel = 'Sin certificado';
+    if (p.certVence) {
+      try {
+        const dias = daysBetween(hoy, new Date(p.certVence));
+        certClass = dias < 0 ? 'badge-red' : dias < 30 ? 'badge-red' : dias < 60 ? 'badge-orange' : 'badge-green';
+        certLabel = dias < 0 ? 'VENCIDO' : `Vence ${fmtDate(p.certVence)} · ${dias}d`;
+      } catch(e) { certLabel = p.certVence; }
+    }
+    return `<div style="display:flex;align-items:center;gap:14px;padding:14px 1.25rem;border-bottom:1px solid #f5f5f5">
+      <div class="avatar" style="background:${p.activo?'var(--green-bg)':'#f0f0f0'};color:${p.activo?'var(--green-dim)':'var(--grey-2)'}">${getInitials(p.nombre)}</div>
+      <div style="flex:1">
+        <div style="font-weight:600">${p.nombre||'—'}</div>
+        <div style="font-size:12px;color:var(--grey-2)">${p.rol||'—'} · ${p.email||'Sin email'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--grey-2);margin-bottom:3px">Cert. delitos sexuales</div>
+        <span class="badge ${certClass}">${certLabel}</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="modalEditarPersonal('${p.id}')">Editar</button>
+    </div>`;
+  }).join('');
   document.getElementById('page-content').innerHTML = `
     <div class="card">
-      <div class="card-header"><span>👥</span><div class="card-title">Equipo SM Academia</div></div>
+      <div class="card-header"><span>👥</span><div class="card-title">Equipo SM Academia</div>
+        <span style="margin-left:auto;font-size:12px;color:var(--grey-2)">${lista.length} personas</span>
+      </div>
       <div class="card-body" style="padding:0">
-        ${DB.personal.map(p => {
-          const dias = daysBetween(hoy, new Date(p.certVence));
-          const certClass = dias < 30 ? 'badge-red' : dias < 60 ? 'badge-orange' : 'badge-green';
-          return `<div style="display:flex;align-items:center;gap:14px;padding:14px 1.25rem;border-bottom:1px solid #f5f5f5">
-            <div class="avatar" style="background:${p.activo?'var(--green-bg)':'#f0f0f0'};color:${p.activo?'var(--green-dim)':'var(--grey-2)'}">${getInitials(p.nombre)}</div>
-            <div style="flex:1">
-              <div style="font-weight:600">${p.nombre}</div>
-              <div style="font-size:12px;color:var(--grey-2)">${p.rol} · ${p.email}</div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-size:11px;color:var(--grey-2);margin-bottom:3px">Cert. delitos sexuales</div>
-              <span class="badge ${certClass}">Vence ${fmtDate(p.certVence)} · ${dias>0?`${dias}d`:' VENCIDO'}</span>
-            </div>
-            <button class="btn btn-ghost btn-sm" onclick="modalEditarPersonal('${p.id}')">Editar</button>
-          </div>`;
-        }).join('')}
+        ${rows || '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Sin personal registrado</div><div class="empty-desc">La hoja PERSONAL en tu Sheet está vacía o no tiene datos.</div></div>'}
       </div>
     </div>`;
 }
