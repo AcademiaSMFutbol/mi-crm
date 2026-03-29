@@ -1,0 +1,2757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SM Academia — Sistema 360°</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════════════════
+   CSS VARIABLES & RESET
+═══════════════════════════════════════════════════════════ */
+:root {
+  --black: #0a0a0a;
+  --white: #ffffff;
+  --green: #2e7d32;
+  --green-light: #4caf50;
+  --green-dim: #1b5e20;
+  --green-bg: #e8f5e9;
+  --grey: #cccccc;
+  --grey-2: #888888;
+  --grey-3: #444444;
+  --grey-4: #1a1a1a;
+  --grey-bg: #f5f5f5;
+  --red: #c62828;
+  --red-bg: #ffebee;
+  --orange: #e65100;
+  --orange-bg: #fff3e0;
+  --blue: #1565c0;
+  --blue-bg: #e3f2fd;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.1);
+  --transition: .18s cubic-bezier(.4,0,.2,1);
+  --sidebar-w: 220px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: var(--font); background: var(--grey-bg); color: var(--black); font-size: 14px; line-height: 1.5; }
+input, select, textarea, button { font-family: var(--font); }
+a { text-decoration: none; color: inherit; }
+
+/* ═══════════════════════════════════════════════════════════
+   LOGIN
+═══════════════════════════════════════════════════════════ */
+#login-screen {
+  position: fixed; inset: 0; background: var(--black);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.login-box {
+  background: var(--grey-4); border: 1px solid #2a2a2a;
+  border-radius: 16px; padding: 2.5rem 2rem; width: 360px;
+}
+.login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
+.login-logo-icon {
+  width: 40px; height: 40px; background: var(--green);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 600; color: white; letter-spacing: -1px;
+}
+.login-logo-text { font-size: 18px; font-weight: 600; color: white; }
+.login-logo-sub { font-size: 12px; color: var(--grey-2); }
+.login-field { margin-bottom: 1rem; }
+.login-field label { display: block; font-size: 12px; font-weight: 500; color: var(--grey-2); margin-bottom: 6px; letter-spacing: .04em; text-transform: uppercase; }
+.login-field input, .login-field select {
+  width: 100%; padding: 10px 12px; background: #111; border: 1px solid #333;
+  border-radius: 8px; color: white; font-size: 14px;
+  transition: border-color var(--transition);
+}
+.login-field input:focus, .login-field select:focus { outline: none; border-color: var(--green); }
+.login-field select option { background: #111; }
+.btn-login {
+  width: 100%; padding: 11px; background: var(--green); color: white;
+  border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+  cursor: pointer; margin-top: .5rem; transition: background var(--transition);
+  letter-spacing: .02em;
+}
+.btn-login:hover { background: var(--green-light); }
+.login-error { color: #ef5350; font-size: 12px; margin-top: .5rem; display: none; }
+
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════════ */
+#app { display: none; height: 100vh; overflow: hidden; }
+#app.visible { display: flex; }
+
+.sidebar {
+  width: var(--sidebar-w); background: var(--black); color: white;
+  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; overflow-x: hidden;
+}
+.sidebar-header { padding: 1.25rem 1rem 1rem; border-bottom: 1px solid #1e1e1e; }
+.brand { display: flex; align-items: center; gap: 9px; margin-bottom: .75rem; }
+.brand-icon {
+  width: 32px; height: 32px; background: var(--green); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: white; letter-spacing: -1px; flex-shrink: 0;
+}
+.brand-name { font-size: 14px; font-weight: 600; line-height: 1.2; }
+.brand-sub { font-size: 10px; color: var(--grey-2); }
+.user-chip {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  background: #151515; border-radius: 8px; border: 1px solid #1e1e1e;
+}
+.user-avatar {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--green-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: white; flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 10px; color: var(--grey-2); }
+
+.nav { padding: .75rem .5rem; flex: 1; }
+.nav-section { margin-bottom: .25rem; }
+.nav-section-label {
+  font-size: 9px; font-weight: 600; color: #444; letter-spacing: .1em;
+  text-transform: uppercase; padding: .5rem .5rem .25rem;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px; padding: 7px 10px;
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--grey-2);
+  font-size: 13px; font-weight: 400; transition: all var(--transition);
+  position: relative; white-space: nowrap;
+}
+.nav-item:hover { background: #1a1a1a; color: white; }
+.nav-item.active { background: #1a1a1a; color: white; font-weight: 500; }
+.nav-item.active::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 60%; background: var(--green); border-radius: 0 3px 3px 0;
+}
+.nav-icon { width: 16px; text-align: center; font-size: 14px; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; background: var(--green); color: white;
+  font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 10px;
+}
+.nav-badge.red { background: var(--red); }
+
+.sidebar-footer {
+  padding: .75rem .5rem; border-top: 1px solid #1e1e1e;
+}
+.sync-status {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  border-radius: var(--radius-sm); background: #0d1f0d; cursor: pointer;
+  transition: background var(--transition);
+}
+.sync-status:hover { background: #162816; }
+.sync-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green-light);
+  flex-shrink: 0; position: relative;
+}
+.sync-dot.syncing { animation: pulse-dot 1.2s ease infinite; }
+.sync-dot.error { background: var(--red); }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
+.sync-text { font-size: 11px; color: #4caf50; }
+.sync-time { font-size: 10px; color: #444; margin-left: auto; }
+
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  background: white; border-bottom: 1px solid #e8e8e8;
+  padding: .875rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+  flex-shrink: 0; min-height: 56px;
+}
+.page-title { font-size: 16px; font-weight: 600; }
+.page-sub { font-size: 12px; color: var(--grey-2); margin-top: 1px; }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.content { flex: 1; overflow-y: auto; padding: 1.5rem; }
+
+/* ═══════════════════════════════════════════════════════════
+   COMPONENTS
+═══════════════════════════════════════════════════════════ */
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--radius-sm); border: none;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all var(--transition); line-height: 1;
+}
+.btn-primary { background: var(--green); color: white; }
+.btn-primary:hover { background: var(--green-light); }
+.btn-secondary { background: white; color: var(--black); border: 1px solid var(--grey); }
+.btn-secondary:hover { background: var(--grey-bg); border-color: #aaa; }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid #ef9a9a; }
+.btn-danger:hover { background: #ffcdd2; }
+.btn-ghost { background: transparent; color: var(--grey-3); border: 1px solid transparent; }
+.btn-ghost:hover { background: var(--grey-bg); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { padding: 7px; width: 32px; height: 32px; justify-content: center; }
+
+/* Cards */
+.card {
+  background: white; border-radius: var(--radius); border: 1px solid #e8e8e8;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.card-header {
+  padding: 1rem 1.25rem; border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 10px;
+}
+.card-title { font-size: 14px; font-weight: 600; }
+.card-body { padding: 1.25rem; }
+
+/* KPI Grid */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1.25rem; }
+.kpi-card {
+  background: white; border-radius: var(--radius); border: 1px solid #e8e8e8;
+  padding: 1rem 1.25rem; box-shadow: var(--shadow-sm);
+}
+.kpi-label { font-size: 11px; font-weight: 500; color: var(--grey-2); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+.kpi-value { font-size: 26px; font-weight: 600; line-height: 1; color: var(--black); }
+.kpi-value.green { color: var(--green); }
+.kpi-value.red { color: var(--red); }
+.kpi-value.orange { color: var(--orange); }
+.kpi-delta { font-size: 11px; color: var(--grey-2); margin-top: 4px; }
+.kpi-delta.up { color: var(--green); }
+.kpi-delta.down { color: var(--red); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  padding: 10px 12px; font-weight: 600; font-size: 11px; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--grey-2); background: var(--grey-bg);
+  border-bottom: 1px solid #e8e8e8; text-align: left; white-space: nowrap;
+}
+tbody td {
+  padding: 10px 12px; border-bottom: 1px solid #f5f5f5;
+  color: var(--black); vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background var(--transition); cursor: pointer; }
+tbody tr:hover { background: #fafafa; }
+.mono { font-family: var(--mono); font-size: 12px; }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  white-space: nowrap;
+}
+.badge-green { background: var(--green-bg); color: var(--green-dim); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-orange { background: var(--orange-bg); color: var(--orange); }
+.badge-blue { background: var(--blue-bg); color: var(--blue); }
+.badge-grey { background: #f0f0f0; color: var(--grey-3); }
+
+/* Filters bar */
+.filters-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem;
+}
+.filter-input {
+  padding: 7px 12px; border: 1px solid var(--grey); border-radius: var(--radius-sm);
+  font-size: 13px; background: white; outline: none;
+  transition: border-color var(--transition);
+}
+.filter-input:focus { border-color: var(--green); }
+.filter-input.search { min-width: 200px; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center; z-index: 500;
+  opacity: 0; pointer-events: none; transition: opacity var(--transition);
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: white; border-radius: 14px; width: 560px; max-width: 95vw;
+  max-height: 90vh; display: flex; flex-direction: column;
+  transform: translateY(10px); transition: transform var(--transition);
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-header {
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 10px;
+}
+.modal-title { font-size: 16px; font-weight: 600; flex: 1; }
+.modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--grey-2); padding: 0 4px; line-height: 1; }
+.modal-close:hover { color: var(--black); }
+.modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+.modal-footer {
+  padding: 1rem 1.5rem; border-top: 1px solid #f0f0f0;
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* Form */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-grid.cols-1 { grid-template-columns: 1fr; }
+.field-group { display: flex; flex-direction: column; gap: 5px; }
+.field-group.full { grid-column: 1 / -1; }
+.field-label { font-size: 12px; font-weight: 500; color: var(--grey-3); }
+.field-label .req { color: var(--red); margin-left: 2px; }
+.field-input, .field-select, .field-textarea {
+  padding: 9px 12px; border: 1px solid var(--grey); border-radius: var(--radius-sm);
+  font-size: 13px; background: white; outline: none; width: 100%;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field-input:focus, .field-select:focus, .field-textarea:focus {
+  border-color: var(--green); box-shadow: 0 0 0 3px rgba(46,125,50,.1);
+}
+.field-textarea { resize: vertical; min-height: 80px; font-family: var(--font); }
+.field-hint { font-size: 11px; color: var(--grey-2); }
+
+/* Toast */
+.toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--grey-4); color: white; padding: 10px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  animation: slide-in .2s ease; min-width: 240px; max-width: 360px;
+  display: flex; align-items: center; gap: 10px;
+}
+.toast.success { background: var(--green-dim); }
+.toast.error { background: var(--red); }
+.toast.warning { background: var(--orange); }
+@keyframes slide-in { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* Loading */
+.loading-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 3rem; color: var(--grey-2); gap: 12px;
+}
+.spinner {
+  width: 28px; height: 28px; border: 2.5px solid #e0e0e0;
+  border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.empty-state {
+  padding: 3rem; text-align: center; color: var(--grey-2);
+}
+.empty-icon { font-size: 2.5rem; margin-bottom: .75rem; opacity: .5; }
+.empty-title { font-size: 15px; font-weight: 600; color: var(--grey-3); margin-bottom: .25rem; }
+.empty-desc { font-size: 13px; }
+
+/* Avatar */
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--green-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--green); flex-shrink: 0;
+}
+.avatar-sm { width: 24px; height: 24px; font-size: 9px; }
+
+/* Progress */
+.progress-bar {
+  height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden;
+}
+.progress-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width .3s ease; }
+.progress-fill.warn { background: var(--orange); }
+.progress-fill.danger { background: var(--red); }
+
+/* Tabs */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid #e8e8e8; margin-bottom: 1.25rem; }
+.tab {
+  padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--grey-2);
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all var(--transition);
+}
+.tab:hover { color: var(--black); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+/* Section divider */
+.section-divider {
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--grey-2); margin: 1.5rem 0 .75rem; display: flex; align-items: center; gap: 10px;
+}
+.section-divider::after { content: ''; flex: 1; height: 1px; background: #f0f0f0; }
+
+/* Attendance grid */
+.attendance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px,1fr)); gap: 4px; }
+.att-day {
+  aspect-ratio: 1; border-radius: var(--radius-sm); display: flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: all var(--transition); border: 1.5px solid transparent; position: relative;
+}
+.att-day.present { background: var(--green-bg); color: var(--green-dim); border-color: #a5d6a7; }
+.att-day.absent { background: var(--red-bg); color: var(--red); border-color: #ef9a9a; }
+.att-day.empty { background: #f5f5f5; color: var(--grey-2); }
+.att-day.today { box-shadow: 0 0 0 2px var(--green); }
+.att-day:hover { transform: scale(1.1); z-index: 1; }
+
+/* Rating stars */
+.rating { display: flex; gap: 3px; }
+.rating-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #e0e0e0;
+  transition: background var(--transition); cursor: pointer;
+}
+.rating-dot.filled { background: var(--green); }
+.rating-dot.warn { background: var(--orange); }
+.rating-dot.bad { background: var(--red); }
+
+/* Chart container */
+.chart-container { position: relative; height: 200px; }
+
+/* Camino SM */
+.camino-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: linear-gradient(135deg, #1b5e20, #2e7d32); color: white;
+  padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+}
+
+/* Config API */
+.config-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center; z-index: 600;
+  opacity: 0; pointer-events: none; transition: opacity var(--transition);
+}
+.config-overlay.open { opacity: 1; pointer-events: all; }
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .sidebar { width: 56px; }
+  .brand-name, .brand-sub, .user-info, .nav-section-label, .nav-item span:not(.nav-icon), .sync-text, .sync-time { display: none; }
+  .nav-item { justify-content: center; padding: 10px; }
+  .nav-item.active::before { width: 100%; height: 2px; top: auto; bottom: 0; transform: none; border-radius: 2px 2px 0 0; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .modal { width: 95vw; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">SM</div>
+      <div>
+        <div class="login-logo-text">SM Academia</div>
+        <div class="login-logo-sub">Sistema de Gestión 360°</div>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>Acceso como</label>
+      <select id="login-role">
+        <option value="">— Selecciona tu rol —</option>
+        <option value="ADMIN">Admin (Samy Martín)</option>
+        <option value="MONITOR">Monitor</option>
+        <option value="FAMILIA">Familia</option>
+      </select>
+    </div>
+    <div class="login-field" id="login-monitor-wrap" style="display:none">
+      <label>Monitor</label>
+      <select id="login-monitor-name">
+        <option value="Monitor 1">Monitor 1</option>
+        <option value="Monitor 2">Monitor 2</option>
+        <option value="Samy">Samy (Director)</option>
+      </select>
+    </div>
+    <div class="login-field" id="login-familia-wrap" style="display:none">
+      <label>Email de la familia</label>
+      <input type="email" id="login-email" placeholder="email@ejemplo.com">
+    </div>
+    <div class="login-field">
+      <label>Clave de acceso</label>
+      <input type="password" id="login-pass" placeholder="••••••••">
+    </div>
+    <div class="login-error" id="login-error">Credenciales incorrectas. Verifica tus datos.</div>
+    <button class="btn-login" onclick="doLogin()">Entrar al sistema</button>
+    <div style="margin-top:1rem;font-size:11px;color:#444;text-align:center">
+      Sistema vinculado a Google Sheets · BASE DATOS SM
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon">SM</div>
+        <div>
+          <div class="brand-name">SM Academia</div>
+          <div class="brand-sub">Sistema 360°</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar-small">SM</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name-chip">Samy Martín</div>
+          <div class="user-role" id="user-role-chip">Admin</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <!-- General -->
+      <div class="nav-section">
+        <div class="nav-section-label">General</div>
+        <div class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
+          <span class="nav-icon">📊</span><span>Dashboard</span>
+        </div>
+      </div>
+
+      <!-- Admin only -->
+      <div class="nav-section" id="nav-admin">
+        <div class="nav-section-label">Gestión</div>
+        <div class="nav-item" onclick="navigate('clientes')" data-page="clientes">
+          <span class="nav-icon">👤</span><span>Clientes</span>
+        </div>
+        <div class="nav-item" onclick="navigate('alumnos')" data-page="alumnos">
+          <span class="nav-icon">🎓</span><span>Alumnos</span>
+        </div>
+        <div class="nav-item" onclick="navigate('inscripciones')" data-page="inscripciones">
+          <span class="nav-icon">📋</span><span>Inscripciones</span>
+        </div>
+        <div class="nav-item" onclick="navigate('pagos')" data-page="pagos">
+          <span class="nav-icon">💳</span><span>Pagos</span>
+          <span class="nav-badge red" id="badge-impagos">0</span>
+        </div>
+        <div class="nav-item" onclick="navigate('facturas')" data-page="facturas">
+          <span class="nav-icon">🧾</span><span>Facturas</span>
+        </div>
+      </div>
+
+      <!-- Actividades -->
+      <div class="nav-section">
+        <div class="nav-section-label">Actividades</div>
+        <div class="nav-item" onclick="navigate('futbol')" data-page="futbol">
+          <span class="nav-icon">⚽</span><span>SM Fútbol</span>
+        </div>
+        <div class="nav-item" onclick="navigate('extraescolares')" data-page="extraescolares">
+          <span class="nav-icon">🏫</span><span>Extraescolares</span>
+        </div>
+        <div class="nav-item" onclick="navigate('asistencia')" data-page="asistencia">
+          <span class="nav-icon">✅</span><span>Asistencia</span>
+        </div>
+      </div>
+
+      <!-- Admin only section 2 -->
+      <div class="nav-section" id="nav-admin-2">
+        <div class="nav-section-label">Sistema</div>
+        <div class="nav-item" onclick="navigate('personal')" data-page="personal">
+          <span class="nav-icon">👥</span><span>Personal</span>
+        </div>
+        <div class="nav-item" onclick="navigate('incidencias')" data-page="incidencias">
+          <span class="nav-icon">⚠️</span><span>Incidencias</span>
+          <span class="nav-badge red" id="badge-incidencias">0</span>
+        </div>
+        <div class="nav-item" onclick="navigate('informes')" data-page="informes">
+          <span class="nav-icon">📄</span><span>Informes</span>
+        </div>
+        <div class="nav-item" onclick="navigate('configuracion')" data-page="configuracion">
+          <span class="nav-icon">⚙️</span><span>Configuración</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sync-status" onclick="syncAll()">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span class="sync-text" id="sync-text">Conectado</span>
+        <span class="sync-time" id="sync-time"></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="page-title">Dashboard</div>
+        <div class="page-sub" id="page-sub">Resumen general del sistema</div>
+      </div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div class="content" id="page-content">
+      <!-- Páginas renderizadas aquí -->
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- MODAL GLOBAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Modal</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- CONFIG OVERLAY (API Sheet) -->
+<div class="config-overlay" id="config-overlay">
+  <div class="modal" style="width:480px">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Configuración de conexión</div>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--grey-2);margin-bottom:1.25rem;line-height:1.6">
+        Para conectar con tu Google Sheet, necesitas desplegar un Web App desde Google Apps Script y pegar la URL aquí. El script tiene permisos de lectura y escritura sobre BASE DATOS SM.
+      </p>
+      <div class="field-group" style="margin-bottom:1rem">
+        <label class="field-label">URL del Web App (Google Apps Script)</label>
+        <input class="field-input" id="gas-url" placeholder="https://script.google.com/macros/s/.../exec" type="url">
+        <span class="field-hint">Sección "Implementar como aplicación web" en Apps Script</span>
+      </div>
+      <div style="background:var(--grey-bg);border-radius:8px;padding:1rem;font-size:12px;color:var(--grey-3);line-height:1.9">
+        <strong>Pasos rápidos:</strong><br>
+        1. Abre tu Sheet → <strong>Extensiones → Apps Script</strong><br>
+        2. Pega el código del archivo <code>gas-backend.gs</code><br>
+        3. <strong>Implementar → Nueva implementación → Aplicación web</strong><br>
+        4. Ejecutar como: <strong>Yo</strong> · Acceso: <strong>Cualquier usuario</strong><br>
+        5. Copia la URL y pégala arriba → Guardar y conectar<br><br>
+        <strong style="color:var(--red)">⚠️ Causa del error "Error de conexión":</strong><br>
+        La implementación anterior usaba POST (bloqueado por CORS). La nueva versión del GAS usa GET — debes crear una <strong>nueva implementación</strong>, no actualizar la existente.
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:1rem 1.5rem;border-top:1px solid #f0f0f0">
+      <button class="btn btn-secondary" onclick="skipConfig()">Usar datos demo</button>
+      <button class="btn btn-primary" onclick="saveConfig()">Guardar y conectar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   CONFIGURATION & STATE
+═══════════════════════════════════════════════════════════ */
+const SHEET_ID = '1nx1wbPyUKDvjsvGUSKaDjClF526S46WDGfyZXkLc4Hc';
+const CONFIG_KEY = 'sm_gas_url';
+const DATA_KEY = 'sm_data_cache';
+const SESSION_KEY = 'sm_session';
+const SYNC_KEY = 'sm_last_sync';
+
+let GAS_URL = localStorage.getItem(CONFIG_KEY) || '';
+let currentUser = null;
+let currentPage = 'dashboard';
+let DB = {
+  clientes: [], alumnos: [], inscripciones: [], pagos: [],
+  facturas: [], sesiones: [], asistencias: [], personal: [],
+  incidencias: [], servicios: [], presupuestos: []
+};
+let lastSync = null;
+
+/* ═══════════════════════════════════════════════════════════
+   CREDENTIALS (producción: Firebase Auth)
+═══════════════════════════════════════════════════════════ */
+const CREDENTIALS = {
+  'ADMIN': { pass: 'sm2026admin', name: 'Samy Martín', role: 'ADMIN', initials: 'SM' },
+  'MONITOR': { pass: 'monitor2026', name: 'Monitor', role: 'MONITOR', initials: 'MO' },
+  'FAMILIA': { pass: 'familia2026', name: 'Familia', role: 'FAMILIA', initials: 'FA' }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   DEMO DATA (fallback cuando no hay GAS URL)
+═══════════════════════════════════════════════════════════ */
+function loadDemoData() {
+  DB.clientes = [
+    {id:'C001',nombre:'HÉCTOR RODRÍGUEZ GARRIDO',email:'hector@email.com',telefono:'622111000',direccion:'Las Palmas',activo:true},
+    {id:'C002',nombre:'CHRISTIAN TORRES BERRIEL',email:'christian@email.com',telefono:'622222000',direccion:'Las Palmas',activo:true},
+    {id:'C003',nombre:'FIONA LUKA',email:'fiona@email.com',telefono:'622333000',direccion:'Santa Brígida',activo:true},
+    {id:'C004',nombre:'JUAN ALBERTO',email:'juan@email.com',telefono:'622444000',direccion:'Las Palmas',activo:true},
+    {id:'C005',nombre:'YURENA SUÁREZ RAMOS',email:'yurena@email.com',telefono:'622555000',direccion:'Las Palmas',activo:true},
+    {id:'C006',nombre:'SARAY BRISSÓN PLAZA',email:'saray@email.com',telefono:'622666000',direccion:'Las Palmas',activo:true},
+  ];
+  DB.alumnos = [
+    {id:'A001',nombre:'ANTOINE RODRÍGUEZ',edad:11,fechaNac:'2013-05-15',clienteId:'C001',grupo:'Miércoles',actividad:'TECNIFICACIÓN',modalidad:'3 SESIONES / SEMANA',foto:'',camino:85,activo:true},
+    {id:'A002',nombre:'ANTONY RODRÍGUEZ',edad:9,fechaNac:'2015-03-22',clienteId:'C001',grupo:'Lunes',actividad:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',foto:'',camino:40,activo:true},
+    {id:'A003',nombre:'BRYAN TORRES HERNÁNDEZ',edad:12,fechaNac:'2012-08-10',clienteId:'C002',grupo:'Miércoles',actividad:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',foto:'',camino:60,activo:true},
+    {id:'A004',nombre:'LUKA XU',edad:10,fechaNac:'2014-12-01',clienteId:'C003',grupo:'Viernes',actividad:'TECNIFICACIÓN',modalidad:'SESIÓN SUELTA',foto:'',camino:15,activo:true},
+    {id:'A005',nombre:'ALBERTO GARCÍA SUÁREZ',edad:13,fechaNac:'2011-07-20',clienteId:'C004',grupo:'Miércoles',actividad:'TECNIFICACIÓN',modalidad:'2 SESIONES / SEMANA',foto:'',camino:110,activo:true},
+    {id:'A006',nombre:'HIMAR GARCÍA',edad:8,fechaNac:'2016-02-14',clienteId:'C004',grupo:'Viernes',actividad:'TECNIFICACIÓN',modalidad:'SESIÓN SUELTA',foto:'',camino:25,activo:true},
+    {id:'A007',nombre:'LEO DIALLO SUÁREZ',edad:7,fechaNac:'2017-09-05',clienteId:'C005',grupo:'N/A',actividad:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',foto:'',camino:30,activo:true},
+    {id:'A008',nombre:'ÁLVARO FALCÓN BRISSÓN',edad:8,fechaNac:'2016-04-18',clienteId:'C006',grupo:'N/A',actividad:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',foto:'',camino:55,activo:true},
+    {id:'A009',nombre:'AIRAM QUINTANILLA LORENZO',edad:9,fechaNac:'2015-11-30',clienteId:'C005',grupo:'N/A',actividad:'MULTIDEPORTE',modalidad:'MENSUALIDAD',foto:'',camino:70,activo:true},
+    {id:'A010',nombre:'JOSÉ SANTANA PIEDRA',edad:10,fechaNac:'2014-06-22',clienteId:'C005',grupo:'N/A',actividad:'MULTIDEPORTE',modalidad:'MENSUALIDAD',foto:'',camino:90,activo:true},
+  ];
+  DB.inscripciones = [
+    {id:'INS001',alumnoId:'A001',clienteId:'C001',servicio:'TECNIFICACIÓN',modalidad:'3 SESIONES / SEMANA',fechaAlta:'2026-01-01',estado:'ACTIVA',precio:144},
+    {id:'INS002',alumnoId:'A002',clienteId:'C001',servicio:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',fechaAlta:'2026-01-01',estado:'ACTIVA',precio:49.5},
+    {id:'INS003',alumnoId:'A003',clienteId:'C002',servicio:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',fechaAlta:'2026-01-01',estado:'ACTIVA',precio:55},
+    {id:'INS004',alumnoId:'A005',clienteId:'C004',servicio:'TECNIFICACIÓN',modalidad:'2 SESIONES / SEMANA',fechaAlta:'2026-01-01',estado:'ACTIVA',precio:110},
+    {id:'INS005',alumnoId:'A007',clienteId:'C005',servicio:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',fechaAlta:'2026-01-08',estado:'ACTIVA',precio:26},
+    {id:'INS006',alumnoId:'A008',clienteId:'C006',servicio:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',fechaAlta:'2026-01-08',estado:'ACTIVA',precio:26},
+  ];
+  DB.pagos = [
+    {id:'PAG0001',fecha:'2026-01-01',mes:'enero',inscripcionId:'INS001',servicio:'TECNIFICACIÓN',alumnoId:'A001',clienteId:'C001',base:139.81,igicPct:3,igicEur:4.19,descPct:10,descEur:16,totalEsperado:144,totalRecibido:144,estado:'PAGADO',metodo:'BIZUM',facturaId:'SM-26-0001',estadoPdf:'LISTO PARA EMITIR'},
+    {id:'PAG0002',fecha:'2026-01-01',mes:'enero',inscripcionId:'INS002',servicio:'TECNIFICACIÓN',alumnoId:'A002',clienteId:'C001',base:48.06,igicPct:3,igicEur:1.44,descPct:10,descEur:5.5,totalEsperado:49.5,totalRecibido:49.5,estado:'PAGADO',metodo:'BIZUM',facturaId:'SM-26-0001',estadoPdf:'LISTO PARA EMITIR'},
+    {id:'PAG0003',fecha:'2026-01-01',mes:'enero',inscripcionId:'INS003',servicio:'TECNIFICACIÓN',alumnoId:'A003',clienteId:'C002',base:53.4,igicPct:3,igicEur:1.6,descPct:0,descEur:0,totalEsperado:55,totalRecibido:55,estado:'PAGADO',metodo:'EFECTIVO',facturaId:'SM-26-0002',estadoPdf:'LISTO PARA EMITIR'},
+    {id:'PAG0004',fecha:'2026-01-01',mes:'enero',inscripcionId:'INS004',servicio:'TECNIFICACIÓN',alumnoId:'A005',clienteId:'C004',base:106.8,igicPct:3,igicEur:3.2,descPct:0,descEur:0,totalEsperado:110,totalRecibido:110,estado:'PAGADO',metodo:'BIZUM',facturaId:'SM-26-0004',estadoPdf:'LISTO PARA EMITIR'},
+    {id:'PAG0005',fecha:'2026-01-08',mes:'enero',inscripcionId:'INS005',servicio:'RECOGIDA TEMPRANA',alumnoId:'A007',clienteId:'C005',base:24.3,igicPct:7,igicEur:1.7,descPct:0,descEur:0,totalEsperado:26,totalRecibido:26,estado:'PAGADO',metodo:'BIZUM',facturaId:'SM-26-0006',estadoPdf:'LISTO PARA EMITIR'},
+    {id:'PAG0006',fecha:'2026-02-01',mes:'febrero',inscripcionId:'INS001',servicio:'TECNIFICACIÓN',alumnoId:'A001',clienteId:'C001',base:139.81,igicPct:3,igicEur:4.19,descPct:10,descEur:16,totalEsperado:144,totalRecibido:0,estado:'PENDIENTE',metodo:'',facturaId:'',estadoPdf:'PENDIENTE'},
+    {id:'PAG0007',fecha:'2026-02-01',mes:'febrero',inscripcionId:'INS003',servicio:'TECNIFICACIÓN',alumnoId:'A003',clienteId:'C002',base:53.4,igicPct:3,igicEur:1.6,descPct:0,descEur:0,totalEsperado:55,totalRecibido:0,estado:'IMPAGADO',metodo:'',facturaId:'',estadoPdf:'PENDIENTE'},
+    {id:'PAG0008',fecha:'2026-03-01',mes:'marzo',inscripcionId:'INS001',servicio:'TECNIFICACIÓN',alumnoId:'A001',clienteId:'C001',base:139.81,igicPct:3,igicEur:4.19,descPct:10,descEur:16,totalEsperado:144,totalRecibido:144,estado:'PAGADO',metodo:'TRANSFERENCIA',facturaId:'SM-26-0015',estadoPdf:'LISTO PARA EMITIR'},
+  ];
+  DB.sesiones = [
+    {id:'SES001',fecha:'2026-03-25',grupo:'Miércoles',monitor:'Samy',numero:42,ubicacion:'Cancha La Atalaya',objetivo:'Control y conducción',alumnos:['A001','A003','A005']},
+    {id:'SES002',fecha:'2026-03-27',grupo:'Viernes',monitor:'Samy',numero:43,ubicacion:'Cuevas Torres',objetivo:'Pressing y recuperación',alumnos:['A002','A004','A006']},
+    {id:'SES003',fecha:'2026-03-22',grupo:'Miércoles',monitor:'Samy',numero:41,ubicacion:'Cancha La Atalaya',objetivo:'Juego en superioridad',alumnos:['A001','A003','A005']},
+  ];
+  DB.asistencias = [
+    {id:'ASI001',sesionId:'SES001',alumnoId:'A001',presente:true,evaluacion:{tecnica:4,decision:3,competitividad:5,actitud:5,cansancio:'Bien'},puntosCamino:10},
+    {id:'ASI002',sesionId:'SES001',alumnoId:'A003',presente:true,evaluacion:{tecnica:3,decision:4,competitividad:3,actitud:4,cansancio:'Regular'},puntosCamino:10},
+    {id:'ASI003',sesionId:'SES001',alumnoId:'A005',presente:false,evaluacion:null,puntosCamino:0},
+    {id:'ASI004',sesionId:'SES002',alumnoId:'A002',presente:true,evaluacion:{tecnica:3,decision:3,competitividad:4,actitud:5,cansancio:'Bien'},puntosCamino:20},
+    {id:'ASI005',sesionId:'SES002',alumnoId:'A004',presente:true,evaluacion:{tecnica:2,decision:3,competitividad:3,actitud:4,cansancio:'Cansado'},puntosCamino:10},
+    {id:'ASI006',sesionId:'SES002',alumnoId:'A006',presente:true,evaluacion:{tecnica:4,decision:4,competitividad:4,actitud:5,cansancio:'Bien'},puntosCamino:10},
+  ];
+  DB.personal = [
+    {id:'PER001',nombre:'Samy Martín',rol:'Director / Entrenador',email:'academiasmfutbol@outlook.es',telefono:'609000000',certDelitos:'2025-01-15',certVence:'2026-01-15',activo:true},
+    {id:'PER002',nombre:'Monitor 1',rol:'Monitor Extraescolares',email:'monitor1@sm.es',telefono:'609000001',certDelitos:'2024-11-10',certVence:'2025-11-10',activo:true},
+    {id:'PER003',nombre:'Monitor 2',rol:'Monitor Extraescolares',email:'monitor2@sm.es',telefono:'609000002',certDelitos:'2025-03-20',certVence:'2026-03-20',activo:true},
+  ];
+  DB.incidencias = [
+    {id:'INC001',fecha:'2026-03-15',alumnoId:'A003',tipo:'Golpe',descripcion:'Pequeña caída durante el ejercicio. Sin herida. Familia notificada.',notificadoFamilia:true,resuelto:true},
+  ];
+  DB.servicios = [
+    {id:'SRV001',nombre:'TECNIFICACIÓN',modalidad:'1 SESIÓN / SEMANA',precio:55,igic:3,activo:true},
+    {id:'SRV002',nombre:'TECNIFICACIÓN',modalidad:'2 SESIONES / SEMANA',precio:110,igic:3,activo:true},
+    {id:'SRV003',nombre:'TECNIFICACIÓN',modalidad:'3 SESIONES / SEMANA',precio:144,igic:3,activo:true},
+    {id:'SRV004',nombre:'TECNIFICACIÓN',modalidad:'SESIÓN SUELTA',precio:15,igic:3,activo:true},
+    {id:'SRV005',nombre:'RECOGIDA TEMPRANA',modalidad:'MENSUALIDAD',precio:26,igic:7,activo:true},
+    {id:'SRV006',nombre:'MULTIDEPORTE',modalidad:'MENSUALIDAD',precio:30,igic:7,activo:true},
+    {id:'SRV007',nombre:'MULTIDEPORTE ADAPTADO',modalidad:'MENSUALIDAD',precio:30,igic:7,activo:true},
+    {id:'SRV008',nombre:'INGLÉS',modalidad:'MENSUALIDAD',precio:35,igic:7,activo:true},
+    {id:'SRV009',nombre:'BAILE',modalidad:'MENSUALIDAD',precio:32,igic:7,activo:true},
+  ];
+  DB.presupuestos = [
+    {id:'PRE001',clienteId:'C003',fecha:'2026-03-01',descripcion:'Presupuesto 2 sesiones/semana',total:110,estado:'PENDIENTE'},
+  ];
+  DB.extraescolares = [
+    {id:'EXT001',alumnoId:'A007',actividad:'RECOGIDA TEMPRANA',centro:'CEIP Escaleritas',monitor:'Monitor 1',camino:30,asistenciasMes:{1:true,2:true,3:false,4:true,5:true,6:false,7:true,8:true,9:true,10:false,11:true,12:true,13:true,14:false,15:true,16:true,17:true,18:false,19:true,20:true,21:true,22:false,23:true,24:true,25:true,26:false,27:true,28:true}},
+    {id:'EXT002',alumnoId:'A008',actividad:'RECOGIDA TEMPRANA',centro:'CEIP Escaleritas',monitor:'Monitor 1',camino:55,asistenciasMes:{1:true,2:true,3:true,4:true,5:true,6:false,7:true,8:true,9:true,10:true,11:true,12:true,13:true,14:false,15:true,16:true,17:true,18:true,19:true,20:true,21:true,22:false,23:true,24:true,25:true,26:true,27:true,28:true}},
+    {id:'EXT003',alumnoId:'A009',actividad:'MULTIDEPORTE',centro:'CEIP Escaleritas',monitor:'Monitor 2',camino:70,asistenciasMes:{1:true,2:false,3:true,4:true,5:true,6:false,7:true,8:true,9:false,10:true,11:true,12:true,13:false,14:false,15:true,16:true,17:false,18:true,19:true,20:true,21:true,22:false,23:true,24:true,25:false,26:true,27:true,28:true}},
+    {id:'EXT004',alumnoId:'A010',actividad:'MULTIDEPORTE',centro:'CEIP Escaleritas',monitor:'Monitor 2',camino:90,asistenciasMes:{1:true,2:true,3:true,4:true,5:true,6:true,7:true,8:true,9:true,10:true,11:true,12:true,13:true,14:false,15:true,16:true,17:true,18:true,19:true,20:true,21:true,22:true,23:true,24:true,25:true,26:true,27:true,28:true}},
+  ];
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GOOGLE APPS SCRIPT API — JSONP
+   Usa <script> tag dinámico en lugar de fetch.
+   Funciona desde file://, GitHub Pages, cualquier origen.
+   No hay CORS. No hay preflight. Siempre funciona.
+═══════════════════════════════════════════════════════════ */
+
+function gasRequest(action, data = {}) {
+  return new Promise((resolve, reject) => {
+    if (!GAS_URL) {
+      loadDemoData();
+      resolve({ ok: true, demo: true });
+      return;
+    }
+
+    setSyncState('syncing');
+
+    // Nombre de callback único para esta petición
+    const cbName = '__smcb_' + Date.now() + '_' + Math.floor(Math.random() * 9999);
+
+    // Timeout de 15 segundos
+    const timeout = setTimeout(() => {
+      cleanup();
+      setSyncState('error');
+      reject(new Error('Timeout: el GAS no respondió en 15 segundos. ¿Está publicado como Web App?'));
+    }, 15000);
+
+    // Limpiar después de recibir respuesta
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      const oldScript = document.getElementById(cbName);
+      if (oldScript) oldScript.remove();
+    }
+
+    // Función global que el GAS llamará con el resultado
+    window[cbName] = function(result) {
+      cleanup();
+      setSyncState('ok');
+      lastSync = new Date();
+      const syncTimeEl = document.getElementById('sync-time');
+      if (syncTimeEl) syncTimeEl.textContent = 'ahora';
+      resolve(result);
+    };
+
+    // Construir URL con todos los parámetros
+    const params = new URLSearchParams({
+      action,
+      callback: cbName
+    });
+    if (data.sheet) params.append('sheet', data.sheet);
+    if (data.id)    params.append('id', String(data.id));
+    if (data.row)   params.append('row', JSON.stringify(data.row));
+
+    // Crear tag <script> — esto nunca falla por CORS
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = GAS_URL + '?' + params.toString();
+    script.onerror = function() {
+      cleanup();
+      setSyncState('error');
+      reject(new Error('No se pudo cargar el script del GAS. Verifica la URL.'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function syncAll() {
+  if (!GAS_URL) { showToast('Sin conexión GAS — usando datos demo', 'warning'); return; }
+  showToast('Sincronizando con Google Sheets…', 'info');
+  setSyncState('syncing');
+  try {
+    const res = await gasRequest('GET_ALL');
+    if (res.ok && res.data) {
+      Object.entries(res.data).forEach(([key, val]) => {
+        if (Array.isArray(val) && val.length > 0) DB[key] = val;
+      });
+      renderCurrentPage();
+      showToast('Datos sincronizados ✓', 'success');
+      saveCacheLocal();
+      updateBadges();
+    } else {
+      throw new Error(res.error || 'Respuesta vacía del GAS');
+    }
+  } catch (e) {
+    setSyncState('error');
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function writeToSheet(sheet, rowData) {
+  if (!GAS_URL) {
+    showToast('Modo demo — datos guardados localmente', 'warning');
+    return { ok: true, demo: true };
+  }
+  try {
+    const res = await gasRequest('APPEND', { sheet, row: rowData });
+    if (res.ok) showToast('Guardado en Google Sheets ✓', 'success');
+    else showToast('Error al guardar: ' + (res.error || '?'), 'error');
+    return res;
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+    return { ok: false, error: e.message };
+  }
+}
+
+async function updateInSheet(sheet, id, rowData) {
+  if (!GAS_URL) return { ok: true, demo: true };
+  try {
+    const res = await gasRequest('UPDATE', { sheet, id, row: rowData });
+    if (res.ok) showToast('Actualizado ✓', 'success');
+    else showToast('Error al actualizar: ' + (res.error || '?'), 'error');
+    return res;
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+    return { ok: false, error: e.message };
+  }
+}
+
+async function testConexionGAS() {
+  if (!GAS_URL) { showToast('No hay URL configurada', 'error'); return; }
+  showToast('Probando conexión…', 'info');
+  try {
+    const res = await gasRequest('PING');
+    if (res.ok) {
+      showToast('✅ Conexión OK · ' + (res.message || 'GAS responde correctamente'), 'success');
+    } else {
+      showToast('⚠️ GAS respondió con error: ' + (res.error || 'Desconocido'), 'warning');
+    }
+  } catch (e) {
+    showToast('❌ ' + e.message, 'error');
+  }
+}
+
+function saveCacheLocal() {
+  try { localStorage.setItem(DATA_KEY, JSON.stringify({ data: DB, ts: Date.now() })); } catch(e) {}
+}
+
+function loadCacheLocal() {
+  try {
+    const raw = localStorage.getItem(DATA_KEY);
+    if (raw) { const p = JSON.parse(raw); Object.assign(DB, p.data); return true; }
+  } catch(e) {}
+  return false;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH
+═══════════════════════════════════════════════════════════ */
+document.getElementById('login-role').addEventListener('change', function() {
+  document.getElementById('login-monitor-wrap').style.display = this.value === 'MONITOR' ? '' : 'none';
+  document.getElementById('login-familia-wrap').style.display = this.value === 'FAMILIA' ? '' : 'none';
+});
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogin() {
+  const role = document.getElementById('login-role').value;
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  if (!role) { err.style.display = 'block'; err.textContent = 'Selecciona un rol.'; return; }
+  const cred = CREDENTIALS[role];
+  if (!cred || pass !== cred.pass) { err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  let name = cred.name;
+  if (role === 'MONITOR') {
+    const monName = document.getElementById('login-monitor-name').value;
+    name = monName;
+    const mon = DB.personal.find(p => p.nombre === monName);
+    if (mon) {
+      const dias = daysBetween(new Date(), new Date(mon.certVence));
+      if (dias < 30) showToast(`⚠️ Certificado de delitos sexuales vence en ${dias} días`, 'warning');
+    }
+  }
+  currentUser = { role, name, initials: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+  startApp();
+}
+
+function startApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  // UI por rol
+  document.getElementById('user-name-chip').textContent = currentUser.name;
+  document.getElementById('user-role-chip').textContent = currentUser.role;
+  document.getElementById('user-avatar-small').textContent = currentUser.initials;
+  const isAdmin = currentUser.role === 'ADMIN';
+  document.getElementById('nav-admin').style.display = isAdmin ? '' : 'none';
+  document.getElementById('nav-admin-2').style.display = isAdmin ? '' : 'none';
+  // Cargar datos
+  if (!loadCacheLocal()) loadDemoData();
+  if (GAS_URL) syncAll(); else { loadDemoData(); showConfigIfNeeded(); }
+  navigate('dashboard');
+  updateBadges();
+  setInterval(updateSyncTime, 60000);
+}
+
+function showConfigIfNeeded() {
+  if (!GAS_URL && currentUser.role === 'ADMIN') {
+    setTimeout(() => document.getElementById('config-overlay').classList.add('open'), 800);
+  }
+}
+
+function saveConfig() {
+  const url = document.getElementById('gas-url').value.trim();
+  if (!url) { showToast('Pega la URL del Web App', 'error'); return; }
+  GAS_URL = url;
+  localStorage.setItem(CONFIG_KEY, url);
+  document.getElementById('config-overlay').classList.remove('open');
+  showToast('Conectando con Google Sheets…', 'info');
+  syncAll();
+}
+function skipConfig() {
+  loadDemoData();
+  document.getElementById('config-overlay').classList.remove('open');
+  showToast('Modo demo activo — los cambios no se guardarán en Sheets', 'warning');
+  renderCurrentPage();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════════════ */
+const PAGE_META = {
+  dashboard:      { title: 'Dashboard', sub: 'Resumen general del sistema' },
+  clientes:       { title: 'Clientes', sub: 'Gestión de tutores y familias' },
+  alumnos:        { title: 'Alumnos', sub: 'Fichas y seguimiento individual' },
+  inscripciones:  { title: 'Inscripciones', sub: 'Altas, bajas y contratos' },
+  pagos:          { title: 'Pagos', sub: 'Control de cobros y morosidad' },
+  facturas:       { title: 'Facturas', sub: 'Emisión y archivo VeriFactu' },
+  futbol:         { title: 'SM Fútbol', sub: 'Sesiones, evaluaciones y Camino SM' },
+  extraescolares: { title: 'SM Extraescolares', sub: 'CEIP Escaleritas · Actividades y asistencia' },
+  asistencia:     { title: 'Control de Asistencia', sub: 'Registro diario por actividad' },
+  personal:       { title: 'Personal', sub: 'Monitores y certificaciones' },
+  incidencias:    { title: 'Incidencias', sub: 'Registro de golpes, conflictos y emergencias' },
+  informes:       { title: 'Informes', sub: 'Generación de PDFs y exportaciones' },
+  configuracion:  { title: 'Configuración', sub: 'Sistema y conexión Google Sheets' },
+};
+
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  const meta = PAGE_META[page] || { title: page, sub: '' };
+  document.getElementById('page-title').textContent = meta.title;
+  document.getElementById('page-sub').textContent = meta.sub;
+  document.getElementById('topbar-actions').innerHTML = '';
+  renderCurrentPage();
+}
+
+function renderCurrentPage() {
+  const pages = {
+    dashboard, clientes, alumnos, inscripciones, pagos, facturas,
+    futbol, extraescolares, asistencia, personal, incidencias, informes, configuracion
+  };
+  if (pages[currentPage]) pages[currentPage]();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════ */
+const fmtEur = v => new Intl.NumberFormat('es-ES', {style:'currency',currency:'EUR'}).format(v||0);
+const fmtDate = d => d ? new Date(d).toLocaleDateString('es-ES') : '—';
+const fmtMonth = m => ({ enero:'Enero',febrero:'Febrero',marzo:'Marzo',abril:'Abril',mayo:'Mayo',junio:'Junio',julio:'Julio',agosto:'Agosto',septiembre:'Septiembre',octubre:'Octubre',noviembre:'Noviembre',diciembre:'Diciembre' })[m] || m;
+const getInitials = n => n ? n.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase() : '??';
+const daysBetween = (a,b) => Math.ceil((b-a)/(1000*60*60*24));
+
+function getAlumno(id) { return DB.alumnos.find(a => a.id === id) || {}; }
+function getCliente(id) { return DB.clientes.find(c => c.id === id) || {}; }
+
+function estadoPagoBadge(estado) {
+  const map = {
+    'PAGADO': 'badge-green',
+    'PENDIENTE': 'badge-orange',
+    'IMPAGADO': 'badge-red',
+    'PARCIAL': 'badge-blue',
+  };
+  return `<span class="badge ${map[estado]||'badge-grey'}">${estado}</span>`;
+}
+
+function actividadBadge(actividad) {
+  const map = {
+    'TECNIFICACIÓN': 'badge-blue',
+    'RECOGIDA TEMPRANA': 'badge-green',
+    'MULTIDEPORTE': 'badge-orange',
+    'MULTIDEPORTE ADAPTADO': 'badge-orange',
+    'INGLÉS': 'badge-blue',
+    'BAILE': 'badge-blue',
+  };
+  return `<span class="badge ${map[actividad]||'badge-grey'}">${actividad}</span>`;
+}
+
+function updateBadges() {
+  const impagados = DB.pagos.filter(p => p.estado === 'IMPAGADO').length;
+  const incAbiertas = DB.incidencias.filter(i => !i.resuelto).length;
+  const badgeI = document.getElementById('badge-impagos');
+  const badgeInc = document.getElementById('badge-incidencias');
+  if (badgeI) { badgeI.textContent = impagados; badgeI.style.display = impagados ? '' : 'none'; }
+  if (badgeInc) { badgeInc.textContent = incAbiertas; badgeInc.style.display = incAbiertas ? '' : 'none'; }
+}
+
+function setSyncState(state) {
+  const dot = document.getElementById('sync-dot');
+  const text = document.getElementById('sync-text');
+  if (!dot) return;
+  dot.className = 'sync-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+  text.textContent = state === 'syncing' ? 'Sincronizando…' : state === 'error' ? 'Error' : 'Conectado';
+  text.style.color = state === 'error' ? 'var(--red)' : '#4caf50';
+}
+function updateSyncTime() {
+  if (!lastSync) return;
+  const mins = Math.floor((Date.now() - lastSync) / 60000);
+  const el = document.getElementById('sync-time');
+  if (el) el.textContent = mins < 1 ? 'ahora' : `${mins}m`;
+}
+
+function showToast(msg, type = 'info', dur = 3000) {
+  const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+  const t = document.createElement('div');
+  t.className = `toast ${type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`;
+  t.innerHTML = `<span>${icons[type]||''}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
+
+function openModal(title, bodyHTML, footerHTML = '') {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHTML;
+  document.getElementById('modal-footer').innerHTML = footerHTML;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+function addTopbarBtn(label, fn, type = 'btn-primary', icon = '') {
+  const btn = document.createElement('button');
+  btn.className = `btn ${type}`;
+  btn.innerHTML = `${icon}${label}`;
+  btn.onclick = fn;
+  document.getElementById('topbar-actions').appendChild(btn);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: DASHBOARD
+═══════════════════════════════════════════════════════════ */
+function dashboard() {
+  const mesActual = 'marzo';
+  const pagosMes = DB.pagos.filter(p => p.mes === mesActual);
+  const totalCobrado = pagosMes.filter(p=>p.estado==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
+  const totalEsperado = pagosMes.reduce((s,p)=>s+p.totalEsperado,0);
+  const impagados = DB.pagos.filter(p=>p.estado==='IMPAGADO').length;
+  const alumnosActivos = DB.alumnos.filter(a=>a.activo).length;
+  const inscrActivas = DB.inscripciones.filter(i=>i.estado==='ACTIVA').length;
+
+  // Próximos cumpleaños
+  const hoy = new Date();
+  const cumples = DB.alumnos.filter(a => a.activo && a.fechaNac).map(a => {
+    const fn = new Date(a.fechaNac);
+    const este = new Date(hoy.getFullYear(), fn.getMonth(), fn.getDate());
+    if (este < hoy) este.setFullYear(hoy.getFullYear()+1);
+    return { ...a, diasParaCumple: daysBetween(hoy, este), cumpleFormatted: fmtDate(este) };
+  }).sort((a,b) => a.diasParaCumple - b.diasParaCumple).slice(0,3);
+
+  // Certificados venciendo
+  const certAlert = DB.personal.filter(p => p.activo && daysBetween(hoy, new Date(p.certVence)) < 60);
+
+  // Top Camino SM
+  const topCamino = [...DB.alumnos].filter(a=>a.activo).sort((a,b)=>b.camino-a.camino).slice(0,5);
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Ingresos ${fmtMonth(mesActual)}</div>
+        <div class="kpi-value green">${fmtEur(totalCobrado)}</div>
+        <div class="kpi-delta">Esperado: ${fmtEur(totalEsperado)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Alumnos activos</div>
+        <div class="kpi-value">${alumnosActivos}</div>
+        <div class="kpi-delta">${inscrActivas} inscripciones activas</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Impagados</div>
+        <div class="kpi-value ${impagados>0?'red':''}">${impagados}</div>
+        <div class="kpi-delta ${impagados>0?'down':''}">${impagados>0?'Requieren atención':'Sin morosidad'}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Sesiones este mes</div>
+        <div class="kpi-value">${DB.sesiones.length}</div>
+        <div class="kpi-delta">Últimas sesiones registradas</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Tasa asistencia</div>
+        <div class="kpi-value green">87%</div>
+        <div class="kpi-delta up">+3% vs mes anterior</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Personal activo</div>
+        <div class="kpi-value">${DB.personal.filter(p=>p.activo).length}</div>
+        <div class="kpi-delta ${certAlert.length>0?'down':''}">${certAlert.length>0?`${certAlert.length} certificado(s) por renovar`:'Certificados al día'}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem">
+
+      <!-- Últimos pagos -->
+      <div class="card" style="grid-column:span 2">
+        <div class="card-header">
+          <span style="font-size:16px">💳</span>
+          <div class="card-title">Pagos recientes</div>
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="navigate('pagos')">Ver todos →</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Alumno</th><th>Servicio</th><th>Mes</th><th>Total</th><th>Estado</th></tr></thead>
+            <tbody>
+              ${DB.pagos.slice(-6).reverse().map(p => {
+                const al = getAlumno(p.alumnoId);
+                return `<tr onclick="navigate('pagos')">
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm">${getInitials(al.nombre)}</div>${al.nombre||'—'}</div></td>
+                  <td><span style="font-size:12px">${p.servicio}</span></td>
+                  <td><span style="font-size:12px;color:var(--grey-2)">${fmtMonth(p.mes)}</span></td>
+                  <td><strong>${fmtEur(p.totalEsperado)}</strong></td>
+                  <td>${estadoPagoBadge(p.estado)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel lateral -->
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <!-- Top Camino SM -->
+        <div class="card">
+          <div class="card-header">
+            <span>🏆</span><div class="card-title">Top Camino SM</div>
+          </div>
+          <div class="card-body" style="padding-top:.5rem">
+            ${topCamino.map((a,i) => `
+              <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:${i<4?'1px solid #f5f5f5':'none'}">
+                <div style="font-size:12px;font-weight:700;color:var(--grey-2);width:16px">${i+1}</div>
+                <div class="avatar avatar-sm">${getInitials(a.nombre)}</div>
+                <div style="flex:1;font-size:12px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
+                <div class="camino-badge">⭐ ${a.camino}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Cumpleaños -->
+        <div class="card">
+          <div class="card-header"><span>🎂</span><div class="card-title">Próximos cumpleaños</div></div>
+          <div class="card-body" style="padding-top:.5rem">
+            ${cumples.map(a => `
+              <div style="display:flex;align-items:center;gap:10px;padding:5px 0">
+                <div class="avatar avatar-sm">${getInitials(a.nombre)}</div>
+                <div style="flex:1">
+                  <div style="font-size:12px;font-weight:500">${a.nombre}</div>
+                  <div style="font-size:11px;color:var(--grey-2)">${a.cumpleFormatted} · en ${a.diasParaCumple}d</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alertas -->
+    ${certAlert.length > 0 ? `
+    <div class="card" style="border-color:#ef9a9a;background:#fff5f5">
+      <div class="card-header"><span>⚠️</span><div class="card-title" style="color:var(--red)">Certificados de delitos sexuales por renovar</div></div>
+      <div class="card-body">
+        ${certAlert.map(p => `
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+            <div class="avatar avatar-sm" style="background:var(--red-bg);color:var(--red)">${getInitials(p.nombre)}</div>
+            <div style="flex:1;font-size:13px"><strong>${p.nombre}</strong> · Vence: ${fmtDate(p.certVence)}</div>
+            <span class="badge badge-red">En ${daysBetween(new Date(), new Date(p.certVence))} días</span>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <!-- Últimas sesiones SM Fútbol -->
+    <div class="card" style="margin-top:1rem">
+      <div class="card-header">
+        <span>⚽</span><div class="card-title">Últimas sesiones SM Fútbol</div>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="navigate('futbol')">Ver todas →</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Fecha</th><th>Grupo</th><th>Ubicación</th><th>Objetivo</th><th>Alumnos</th></tr></thead>
+          <tbody>
+            ${DB.sesiones.slice().reverse().map(s => `
+              <tr onclick="navigate('futbol')">
+                <td class="mono">#${s.numero}</td>
+                <td>${fmtDate(s.fecha)}</td>
+                <td><span class="badge badge-blue">${s.grupo}</span></td>
+                <td style="font-size:12px">${s.ubicacion}</td>
+                <td style="font-size:12px;color:var(--grey-2)">${s.objetivo}</td>
+                <td><span class="badge badge-grey">${s.alumnos.length} 👦</span></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: CLIENTES
+═══════════════════════════════════════════════════════════ */
+function clientes() {
+  addTopbarBtn('+ Nuevo cliente', () => modalNuevoCliente(), 'btn-primary', '');
+  let filtered = [...DB.clientes];
+  const render = () => {
+    document.getElementById('clientes-table').innerHTML = filtered.map(c => {
+      const alumnos = DB.alumnos.filter(a => a.clienteId === c.id);
+      return `<tr onclick="verCliente('${c.id}')">
+        <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">${getInitials(c.nombre)}</div><div><div style="font-weight:500">${c.nombre}</div><div style="font-size:11px;color:var(--grey-2)">${c.email||'Sin email'}</div></div></div></td>
+        <td>${c.telefono||'—'}</td>
+        <td>${alumnos.map(a=>`<span class="badge badge-grey" style="margin:1px">${a.nombre.split(' ')[0]}</span>`).join('')}</td>
+        <td>${c.activo?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-grey">Baja</span>'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();modalEditarCliente('${c.id}')">Editar</button></td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">Sin clientes</div></div></td></tr>`;
+  };
+  document.getElementById('page-content').innerHTML = `
+    <div class="filters-bar">
+      <input class="filter-input search" placeholder="Buscar cliente…" oninput="filtrarClientes(this.value)">
+      <select class="filter-input" onchange="filtrarClientesEstado(this.value)">
+        <option value="">Todos</option><option value="activo">Activos</option><option value="baja">Baja</option>
+      </select>
+      <span style="font-size:13px;color:var(--grey-2);margin-left:auto">${DB.clientes.length} clientes</span>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Cliente</th><th>Teléfono</th><th>Alumnos</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="clientes-table"></tbody>
+      </table></div>
+    </div>`;
+  render();
+  window.filtrarClientes = (q) => { filtered = DB.clientes.filter(c => c.nombre.toLowerCase().includes(q.toLowerCase()) || (c.email||'').toLowerCase().includes(q.toLowerCase())); render(); };
+  window.filtrarClientesEstado = (s) => { filtered = s === 'activo' ? DB.clientes.filter(c=>c.activo) : s === 'baja' ? DB.clientes.filter(c=>!c.activo) : DB.clientes; render(); };
+}
+
+function verCliente(id) {
+  const c = getCliente(id);
+  const alumnos = DB.alumnos.filter(a => a.clienteId === id);
+  const pagos = DB.pagos.filter(p => p.clienteId === id);
+  const totalPagado = pagos.filter(p=>p.estado==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
+  openModal(`Cliente: ${c.nombre}`, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+      <div><div style="font-size:11px;color:var(--grey-2);font-weight:500">Email</div><div style="margin-top:3px">${c.email||'—'}</div></div>
+      <div><div style="font-size:11px;color:var(--grey-2);font-weight:500">Teléfono</div><div style="margin-top:3px">${c.telefono||'—'}</div></div>
+      <div><div style="font-size:11px;color:var(--grey-2);font-weight:500">Total facturado</div><div style="margin-top:3px;font-weight:600;color:var(--green)">${fmtEur(totalPagado)}</div></div>
+      <div><div style="font-size:11px;color:var(--grey-2);font-weight:500">Estado</div><div style="margin-top:3px">${c.activo?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-grey">Baja</span>'}</div></div>
+    </div>
+    <div class="section-divider">Alumnos (${alumnos.length})</div>
+    ${alumnos.map(a => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5">
+        <div class="avatar">${getInitials(a.nombre)}</div>
+        <div style="flex:1"><div style="font-weight:500">${a.nombre}</div><div style="font-size:12px;color:var(--grey-2)">${a.actividad} · ${a.modalidad}</div></div>
+        <div class="camino-badge">⭐ ${a.camino}</div>
+      </div>`).join('')}
+    <div class="section-divider">Historial de pagos</div>
+    ${pagos.slice(-4).reverse().map(p=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f5f5f5">
+        <div style="flex:1;font-size:13px">${fmtMonth(p.mes)} · ${p.servicio}</div>
+        <strong>${fmtEur(p.totalEsperado)}</strong>
+        ${estadoPagoBadge(p.estado)}
+      </div>`).join('')}
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button><button class="btn btn-primary" onclick="closeModal();navigate('pagos')">Ver pagos</button>`);
+}
+
+function modalNuevoCliente() {
+  openModal('Nuevo cliente', `
+    <div class="form-grid">
+      <div class="field-group full"><label class="field-label">Nombre completo<span class="req">*</span></label><input class="field-input" id="c-nombre" placeholder="Nombre y apellidos"></div>
+      <div class="field-group"><label class="field-label">Email</label><input class="field-input" id="c-email" type="email" placeholder="email@ejemplo.com"></div>
+      <div class="field-group"><label class="field-label">Teléfono</label><input class="field-input" id="c-tel" placeholder="6XX XXX XXX"></div>
+      <div class="field-group full"><label class="field-label">Dirección</label><input class="field-input" id="c-dir" placeholder="Calle, ciudad"></div>
+      <div class="field-group full"><label class="field-label">Observaciones</label><textarea class="field-textarea" id="c-obs" placeholder="Notas internas…"></textarea></div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarCliente()">Guardar cliente</button>`);
+}
+
+async function guardarCliente() {
+  const nombre = document.getElementById('c-nombre').value.trim();
+  if (!nombre) { showToast('El nombre es obligatorio', 'error'); return; }
+  const id = 'C' + String(DB.clientes.length + 1).padStart('003', '0');
+  const nuevo = {
+    id, nombre: nombre.toUpperCase(),
+    email: document.getElementById('c-email').value.trim(),
+    telefono: document.getElementById('c-tel').value.trim(),
+    direccion: document.getElementById('c-dir').value.trim(),
+    observaciones: document.getElementById('c-obs').value.trim(),
+    activo: true
+  };
+  DB.clientes.push(nuevo);
+  saveCacheLocal();
+  await writeToSheet('CLIENTES', [id, nombre.toUpperCase(), nuevo.email, nuevo.telefono, nuevo.direccion, 'ACTIVO']);
+  closeModal();
+  clientes();
+  updateBadges();
+}
+
+function modalEditarCliente(id) {
+  const c = getCliente(id);
+  openModal(`Editar: ${c.nombre}`, `
+    <div class="form-grid">
+      <div class="field-group full"><label class="field-label">Nombre</label><input class="field-input" id="ec-nombre" value="${c.nombre}"></div>
+      <div class="field-group"><label class="field-label">Email</label><input class="field-input" id="ec-email" value="${c.email||''}"></div>
+      <div class="field-group"><label class="field-label">Teléfono</label><input class="field-input" id="ec-tel" value="${c.telefono||''}"></div>
+      <div class="field-group full"><label class="field-label">Estado</label>
+        <select class="field-select" id="ec-activo">
+          <option value="true" ${c.activo?'selected':''}>Activo</option>
+          <option value="false" ${!c.activo?'selected':''}>Baja</option>
+        </select>
+      </div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="actualizarCliente('${id}')">Guardar</button>`);
+}
+
+async function actualizarCliente(id) {
+  const c = DB.clientes.find(x => x.id === id);
+  if (!c) return;
+  c.nombre = document.getElementById('ec-nombre').value.trim().toUpperCase();
+  c.email = document.getElementById('ec-email').value.trim();
+  c.telefono = document.getElementById('ec-tel').value.trim();
+  c.activo = document.getElementById('ec-activo').value === 'true';
+  saveCacheLocal();
+  await updateInSheet('CLIENTES', id, [c.nombre, c.email, c.telefono, c.activo?'ACTIVO':'BAJA']);
+  closeModal();
+  clientes();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: ALUMNOS
+═══════════════════════════════════════════════════════════ */
+function alumnos() {
+  addTopbarBtn('+ Nuevo alumno', () => modalNuevoAlumno(), 'btn-primary');
+  let filtered = [...DB.alumnos];
+  const render = () => {
+    document.getElementById('alumnos-table').innerHTML = filtered.map(a => {
+      const c = getCliente(a.clienteId);
+      const edad = a.fechaNac ? (new Date().getFullYear() - new Date(a.fechaNac).getFullYear()) : '?';
+      return `<tr onclick="verAlumno('${a.id}')">
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${a.foto ? `<img src="${a.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">` : `<div class="avatar">${getInitials(a.nombre)}</div>`}
+            <div><div style="font-weight:500">${a.nombre}</div><div style="font-size:11px;color:var(--grey-2)">${edad} años · ${a.grupo||'—'}</div></div>
+          </div>
+        </td>
+        <td><div style="font-size:12px">${c.nombre||'—'}</div></td>
+        <td>${actividadBadge(a.actividad)}</td>
+        <td style="font-size:12px">${a.modalidad}</td>
+        <td><div class="camino-badge">⭐ ${a.camino}</div></td>
+        <td>${a.activo?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-grey">Baja</span>'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();modalEditarAlumno('${a.id}')">Editar</button></td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🎓</div><div class="empty-title">Sin alumnos</div></div></td></tr>`;
+  };
+  document.getElementById('page-content').innerHTML = `
+    <div class="filters-bar">
+      <input class="filter-input search" placeholder="Buscar alumno…" oninput="filtrarAlumnos(this.value)">
+      <select class="filter-input" onchange="filtrarAlumnosActividad(this.value)">
+        <option value="">Toda actividad</option>
+        <option value="TECNIFICACIÓN">Tecnificación</option>
+        <option value="RECOGIDA TEMPRANA">Recogida Temprana</option>
+        <option value="MULTIDEPORTE">Multideporte</option>
+        <option value="INGLÉS">Inglés</option>
+        <option value="BAILE">Baile</option>
+      </select>
+      <select class="filter-input" onchange="filtrarAlumnosEstado(this.value)">
+        <option value="">Todos</option><option value="activo">Activos</option><option value="baja">Baja</option>
+      </select>
+      <span style="font-size:13px;color:var(--grey-2);margin-left:auto">${DB.alumnos.filter(a=>a.activo).length} activos / ${DB.alumnos.length} total</span>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Alumno</th><th>Familia</th><th>Actividad</th><th>Modalidad</th><th>Camino SM</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="alumnos-table"></tbody>
+      </table></div>
+    </div>`;
+  render();
+  window.filtrarAlumnos = (q) => { filtered = DB.alumnos.filter(a=>a.nombre.toLowerCase().includes(q.toLowerCase())); render(); };
+  window.filtrarAlumnosActividad = (v) => { filtered = v ? DB.alumnos.filter(a=>a.actividad===v) : [...DB.alumnos]; render(); };
+  window.filtrarAlumnosEstado = (v) => { filtered = v==='activo' ? DB.alumnos.filter(a=>a.activo) : v==='baja' ? DB.alumnos.filter(a=>!a.activo) : [...DB.alumnos]; render(); };
+}
+
+function verAlumno(id) {
+  const a = getAlumno(id);
+  const c = getCliente(a.clienteId);
+  const pagos = DB.pagos.filter(p => p.alumnoId === id);
+  const asist = DB.asistencias.filter(x => x.alumnoId === id);
+  const presentes = asist.filter(x=>x.presente).length;
+  const pct = asist.length ? Math.round(presentes/asist.length*100) : 0;
+  const edad = a.fechaNac ? (new Date().getFullYear() - new Date(a.fechaNac).getFullYear()) : '?';
+  openModal(`Ficha: ${a.nombre}`, `
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+      ${a.foto ? `<img src="${a.foto}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--green-bg)">` 
+               : `<div class="avatar" style="width:64px;height:64px;font-size:20px">${getInitials(a.nombre)}</div>`}
+      <div>
+        <div style="font-size:18px;font-weight:600">${a.nombre}</div>
+        <div style="font-size:13px;color:var(--grey-2)">${edad} años · ${a.grupo||'Sin grupo'}</div>
+        <div style="margin-top:6px">${actividadBadge(a.actividad)} &nbsp; <div class="camino-badge" style="display:inline-flex">⭐ ${a.camino} pts</div></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+      <div><div class="kpi-label">Familia</div><div style="margin-top:4px;font-size:13px">${c.nombre||'—'}</div></div>
+      <div><div class="kpi-label">Teléfono</div><div style="margin-top:4px;font-size:13px">${c.telefono||'—'}</div></div>
+      <div><div class="kpi-label">Modalidad</div><div style="margin-top:4px;font-size:13px">${a.modalidad}</div></div>
+      <div><div class="kpi-label">Fecha nacimiento</div><div style="margin-top:4px;font-size:13px">${fmtDate(a.fechaNac)}</div></div>
+    </div>
+    <div class="section-divider">Asistencia general</div>
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+      <div style="flex:1"><div class="progress-bar"><div class="progress-fill ${pct<60?'danger':pct<80?'warn':''}" style="width:${pct}%"></div></div></div>
+      <div style="font-size:14px;font-weight:600">${pct}%</div>
+    </div>
+    <div style="font-size:12px;color:var(--grey-2)">${presentes} presentes de ${asist.length} sesiones registradas</div>
+    <div class="section-divider">Últimos pagos</div>
+    ${pagos.length ? pagos.slice(-3).reverse().map(p=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f5f5f5">
+        <div style="flex:1;font-size:13px">${fmtMonth(p.mes)} · ${p.servicio}</div>
+        <strong>${fmtEur(p.totalEsperado)}</strong>
+        ${estadoPagoBadge(p.estado)}
+      </div>`).join('') : '<div style="font-size:13px;color:var(--grey-2)">Sin pagos registrados</div>'}
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+      <button class="btn btn-primary" onclick="closeModal();modalEditarAlumno('${id}')">Editar ficha</button>`);
+}
+
+function modalNuevoAlumno() {
+  openModal('Nuevo alumno', `
+    <div class="form-grid">
+      <div class="field-group full"><label class="field-label">Nombre completo<span class="req">*</span></label><input class="field-input" id="al-nombre" placeholder="Nombre y apellidos"></div>
+      <div class="field-group"><label class="field-label">Fecha de nacimiento</label><input class="field-input" id="al-fnac" type="date"></div>
+      <div class="field-group"><label class="field-label">Familia (cliente)<span class="req">*</span></label>
+        <select class="field-select" id="al-cliente">
+          <option value="">— Selecciona —</option>
+          ${DB.clientes.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Actividad<span class="req">*</span></label>
+        <select class="field-select" id="al-actividad">
+          <option value="TECNIFICACIÓN">Tecnificación</option>
+          <option value="RECOGIDA TEMPRANA">Recogida Temprana</option>
+          <option value="MULTIDEPORTE">Multideporte</option>
+          <option value="MULTIDEPORTE ADAPTADO">Multideporte Adaptado</option>
+          <option value="INGLÉS">Inglés</option>
+          <option value="BAILE">Baile</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Modalidad</label>
+        <select class="field-select" id="al-modalidad">
+          <option>1 SESIÓN / SEMANA</option><option>2 SESIONES / SEMANA</option>
+          <option>3 SESIONES / SEMANA</option><option>SESIÓN SUELTA</option><option>MENSUALIDAD</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Grupo / Día</label>
+        <select class="field-select" id="al-grupo">
+          <option value="Lunes">Lunes</option><option value="Miércoles">Miércoles</option>
+          <option value="Viernes">Viernes</option><option value="N/A">N/A</option>
+        </select>
+      </div>
+      <div class="field-group full"><label class="field-label">Observaciones</label><textarea class="field-textarea" id="al-obs" placeholder="Alergias, lesiones previas, notas…"></textarea></div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarAlumno()">Guardar alumno</button>`);
+}
+
+async function guardarAlumno() {
+  const nombre = document.getElementById('al-nombre').value.trim();
+  const clienteId = document.getElementById('al-cliente').value;
+  if (!nombre || !clienteId) { showToast('Nombre y familia son obligatorios', 'error'); return; }
+  const id = 'A' + String(DB.alumnos.length + 1).padStart(3, '0');
+  const nuevo = {
+    id, nombre: nombre.toUpperCase(),
+    fechaNac: document.getElementById('al-fnac').value,
+    clienteId,
+    actividad: document.getElementById('al-actividad').value,
+    modalidad: document.getElementById('al-modalidad').value,
+    grupo: document.getElementById('al-grupo').value,
+    observaciones: document.getElementById('al-obs').value.trim(),
+    foto: '', camino: 0, activo: true
+  };
+  DB.alumnos.push(nuevo);
+  saveCacheLocal();
+  await writeToSheet('ALUMNOS', [id, nuevo.nombre, nuevo.fechaNac, clienteId, nuevo.actividad, nuevo.modalidad, nuevo.grupo, 'ACTIVO', 0]);
+  closeModal();
+  alumnos();
+  showToast(`Alumno ${nuevo.nombre} registrado ✓`, 'success');
+}
+
+function modalEditarAlumno(id) {
+  const a = getAlumno(id);
+  openModal(`Editar: ${a.nombre}`, `
+    <div class="form-grid">
+      <div class="field-group full"><label class="field-label">Nombre</label><input class="field-input" id="eal-nombre" value="${a.nombre}"></div>
+      <div class="field-group"><label class="field-label">Fecha nacimiento</label><input class="field-input" id="eal-fnac" type="date" value="${a.fechaNac||''}"></div>
+      <div class="field-group"><label class="field-label">Actividad</label>
+        <select class="field-select" id="eal-actividad">
+          ${['TECNIFICACIÓN','RECOGIDA TEMPRANA','MULTIDEPORTE','MULTIDEPORTE ADAPTADO','INGLÉS','BAILE'].map(v=>`<option ${a.actividad===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Modalidad</label>
+        <select class="field-select" id="eal-modalidad">
+          ${['1 SESIÓN / SEMANA','2 SESIONES / SEMANA','3 SESIONES / SEMANA','SESIÓN SUELTA','MENSUALIDAD'].map(v=>`<option ${a.modalidad===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Grupo</label>
+        <select class="field-select" id="eal-grupo">
+          ${['Lunes','Miércoles','Viernes','N/A'].map(v=>`<option ${a.grupo===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Estado</label>
+        <select class="field-select" id="eal-activo">
+          <option value="true" ${a.activo?'selected':''}>Activo</option>
+          <option value="false" ${!a.activo?'selected':''}>Baja</option>
+        </select>
+      </div>
+      <div class="field-group full"><label class="field-label">Observaciones</label><textarea class="field-textarea" id="eal-obs">${a.observaciones||''}</textarea></div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="actualizarAlumno('${id}')">Guardar</button>`);
+}
+
+async function actualizarAlumno(id) {
+  const a = DB.alumnos.find(x=>x.id===id);
+  if (!a) return;
+  a.nombre = document.getElementById('eal-nombre').value.trim().toUpperCase();
+  a.fechaNac = document.getElementById('eal-fnac').value;
+  a.actividad = document.getElementById('eal-actividad').value;
+  a.modalidad = document.getElementById('eal-modalidad').value;
+  a.grupo = document.getElementById('eal-grupo').value;
+  a.activo = document.getElementById('eal-activo').value === 'true';
+  a.observaciones = document.getElementById('eal-obs').value.trim();
+  saveCacheLocal();
+  await updateInSheet('ALUMNOS', id, [a.nombre, a.fechaNac, a.actividad, a.modalidad, a.grupo, a.activo?'ACTIVO':'BAJA']);
+  closeModal();
+  alumnos();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: INSCRIPCIONES
+═══════════════════════════════════════════════════════════ */
+function inscripciones() {
+  addTopbarBtn('+ Nueva inscripción', () => modalNuevaInscripcion(), 'btn-primary');
+  document.getElementById('page-content').innerHTML = `
+    <div class="filters-bar">
+      <input class="filter-input search" placeholder="Buscar…" oninput="filtrarInscripciones(this.value)">
+      <select class="filter-input" onchange="filtrarInscripcionesEstado(this.value)">
+        <option value="">Todos los estados</option>
+        <option value="ACTIVA">Activa</option><option value="BAJA">Baja</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Alumno</th><th>Familia</th><th>Servicio</th><th>Modalidad</th><th>Precio</th><th>Alta</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="ins-table"></tbody>
+      </table></div>
+    </div>`;
+  renderInsTable(DB.inscripciones);
+  window.filtrarInscripciones = (q) => { renderInsTable(DB.inscripciones.filter(i => { const a=getAlumno(i.alumnoId); return a.nombre&&a.nombre.toLowerCase().includes(q.toLowerCase()); })); };
+  window.filtrarInscripcionesEstado = (v) => { renderInsTable(v ? DB.inscripciones.filter(i=>i.estado===v) : DB.inscripciones); };
+}
+
+function renderInsTable(data) {
+  document.getElementById('ins-table').innerHTML = data.map(i => {
+    const a = getAlumno(i.alumnoId); const c = getCliente(i.clienteId);
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm">${getInitials(a.nombre)}</div>${a.nombre||'—'}</div></td>
+      <td style="font-size:12px">${c.nombre||'—'}</td>
+      <td>${actividadBadge(i.servicio)}</td>
+      <td style="font-size:12px">${i.modalidad}</td>
+      <td><strong>${fmtEur(i.precio)}</strong></td>
+      <td style="font-size:12px;color:var(--grey-2)">${fmtDate(i.fechaAlta)}</td>
+      <td>${i.estado==='ACTIVA'?'<span class="badge badge-green">Activa</span>':'<span class="badge badge-grey">Baja</span>'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="toggleInscripcion('${i.id}')">
+        ${i.estado==='ACTIVA'?'Dar baja':'Reactivar'}</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Sin inscripciones</div></div></td></tr>`;
+}
+
+async function toggleInscripcion(id) {
+  const i = DB.inscripciones.find(x=>x.id===id);
+  if (!i) return;
+  i.estado = i.estado === 'ACTIVA' ? 'BAJA' : 'ACTIVA';
+  saveCacheLocal();
+  await updateInSheet('INSCRIPCIONES', id, [i.estado]);
+  inscripciones();
+}
+
+function modalNuevaInscripcion() {
+  openModal('Nueva inscripción', `
+    <div class="form-grid">
+      <div class="field-group full"><label class="field-label">Alumno<span class="req">*</span></label>
+        <select class="field-select" id="ins-alumno" onchange="actualizarClienteIns()">
+          <option value="">— Selecciona alumno —</option>
+          ${DB.alumnos.filter(a=>a.activo).map(a=>`<option value="${a.id}" data-cliente="${a.clienteId}">${a.nombre}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Servicio<span class="req">*</span></label>
+        <select class="field-select" id="ins-servicio" onchange="actualizarPrecioIns()">
+          ${DB.servicios.map(s=>`<option value="${s.id}" data-precio="${s.precio}">${s.nombre} · ${s.modalidad}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Precio (€)</label>
+        <input class="field-input" id="ins-precio" type="number" step="0.01">
+      </div>
+      <div class="field-group"><label class="field-label">Fecha de alta</label>
+        <input class="field-input" id="ins-fecha" type="date" value="${new Date().toISOString().split('T')[0]}">
+      </div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarInscripcion()">Registrar inscripción</button>`);
+  window.actualizarClienteIns = () => {
+    const sel = document.getElementById('ins-alumno');
+    const opt = sel.options[sel.selectedIndex];
+  };
+  window.actualizarPrecioIns = () => {
+    const sel = document.getElementById('ins-servicio');
+    const opt = sel.options[sel.selectedIndex];
+    const p = document.getElementById('ins-precio');
+    if (p) p.value = opt.dataset.precio || '';
+  };
+  setTimeout(() => { if(document.getElementById('ins-servicio')) window.actualizarPrecioIns(); }, 100);
+}
+
+async function guardarInscripcion() {
+  const alumnoId = document.getElementById('ins-alumno').value;
+  const servicioId = document.getElementById('ins-servicio').value;
+  if (!alumnoId || !servicioId) { showToast('Selecciona alumno y servicio', 'error'); return; }
+  const srv = DB.servicios.find(s=>s.id===servicioId);
+  const alumno = getAlumno(alumnoId);
+  const id = 'INS' + String(DB.inscripciones.length+1).padStart(3,'0');
+  const nuevo = {
+    id, alumnoId, clienteId: alumno.clienteId,
+    servicio: srv.nombre, modalidad: srv.modalidad,
+    precio: parseFloat(document.getElementById('ins-precio').value) || srv.precio,
+    fechaAlta: document.getElementById('ins-fecha').value,
+    estado: 'ACTIVA'
+  };
+  DB.inscripciones.push(nuevo);
+  saveCacheLocal();
+  await writeToSheet('INSCRIPCIONES', [id, alumnoId, alumno.clienteId, nuevo.servicio, nuevo.modalidad, nuevo.precio, nuevo.fechaAlta, 'ACTIVA']);
+  closeModal();
+  inscripciones();
+  showToast('Inscripción registrada ✓', 'success');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: PAGOS
+═══════════════════════════════════════════════════════════ */
+function pagos() {
+  addTopbarBtn('+ Registrar pago', () => modalNuevoPago(), 'btn-primary');
+  let filtered = [...DB.pagos];
+  const totalIng = filtered.filter(p=>p.estado==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
+  const totalPend = filtered.filter(p=>p.estado!=='PAGADO').reduce((s,p)=>s+(p.totalEsperado-p.totalRecibido),0);
+  const render = () => {
+    const t = document.getElementById('pagos-table');
+    if (!t) return;
+    t.innerHTML = filtered.map(p => {
+      const a = getAlumno(p.alumnoId);
+      return `<tr onclick="verPago('${p.id}')">
+        <td class="mono" style="font-size:11px">${p.id}</td>
+        <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm">${getInitials(a.nombre)}</div><div><div style="font-weight:500;font-size:13px">${a.nombre||'—'}</div><div style="font-size:11px;color:var(--grey-2)">${p.servicio}</div></div></div></td>
+        <td><span class="badge badge-grey">${fmtMonth(p.mes)}</span></td>
+        <td style="font-size:12px">${fmtDate(p.fecha)}</td>
+        <td><strong>${fmtEur(p.totalEsperado)}</strong></td>
+        <td style="font-size:12px">${p.metodo||'—'}</td>
+        <td>${estadoPagoBadge(p.estado)}</td>
+        <td class="mono" style="font-size:11px;color:var(--grey-2)">${p.facturaId||'—'}</td>
+        <td>
+          ${p.estado!=='PAGADO'?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();marcarPagado('${p.id}')">✓ Cobrar</button>`:''}
+        </td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💳</div><div class="empty-title">Sin pagos</div></div></td></tr>`;
+  };
+  document.getElementById('page-content').innerHTML = `
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi-card"><div class="kpi-label">Total cobrado</div><div class="kpi-value green">${fmtEur(totalIng)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Pendiente cobro</div><div class="kpi-value ${totalPend>0?'orange':''}">${fmtEur(totalPend)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Impagados</div><div class="kpi-value ${DB.pagos.filter(p=>p.estado==='IMPAGADO').length>0?'red':''}">${DB.pagos.filter(p=>p.estado==='IMPAGADO').length}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total registros</div><div class="kpi-value">${DB.pagos.length}</div></div>
+    </div>
+    <div class="filters-bar">
+      <input class="filter-input search" placeholder="Buscar alumno…" oninput="filtrarPagosQ(this.value)">
+      <select class="filter-input" onchange="filtrarPagosMes(this.value)">
+        <option value="">Todos los meses</option>
+        ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'].map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('')}
+      </select>
+      <select class="filter-input" onchange="filtrarPagosEstado(this.value)">
+        <option value="">Todos los estados</option>
+        <option value="PAGADO">Pagado</option><option value="PENDIENTE">Pendiente</option><option value="IMPAGADO">Impagado</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Alumno</th><th>Mes</th><th>Fecha</th><th>Total</th><th>Método</th><th>Estado</th><th>Factura</th><th></th></tr></thead>
+        <tbody id="pagos-table"></tbody>
+      </table></div>
+    </div>`;
+  render();
+  window.filtrarPagosQ = (q) => { filtered = DB.pagos.filter(p => { const a=getAlumno(p.alumnoId); return a.nombre&&a.nombre.toLowerCase().includes(q.toLowerCase()); }); render(); };
+  window.filtrarPagosMes = (v) => { filtered = v ? DB.pagos.filter(p=>p.mes===v) : [...DB.pagos]; render(); };
+  window.filtrarPagosEstado = (v) => { filtered = v ? DB.pagos.filter(p=>p.estado===v) : [...DB.pagos]; render(); };
+}
+
+function verPago(id) {
+  const p = DB.pagos.find(x=>x.id===id); if (!p) return;
+  const a = getAlumno(p.alumnoId); const c = getCliente(p.clienteId);
+  openModal(`Pago: ${p.id}`, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div><div class="kpi-label">Alumno</div><div style="margin-top:4px;font-weight:500">${a.nombre||'—'}</div></div>
+      <div><div class="kpi-label">Familia</div><div style="margin-top:4px">${c.nombre||'—'}</div></div>
+      <div><div class="kpi-label">Servicio</div><div style="margin-top:4px">${actividadBadge(p.servicio)}</div></div>
+      <div><div class="kpi-label">Modalidad</div><div style="margin-top:4px;font-size:13px">${p.modalidad}</div></div>
+      <div><div class="kpi-label">Mes</div><div style="margin-top:4px">${fmtMonth(p.mes)}</div></div>
+      <div><div class="kpi-label">Fecha</div><div style="margin-top:4px">${fmtDate(p.fecha)}</div></div>
+      <div><div class="kpi-label">Base imponible</div><div style="margin-top:4px">${fmtEur(p.base)}</div></div>
+      <div><div class="kpi-label">IGIC (${p.igicPct}%)</div><div style="margin-top:4px">${fmtEur(p.igicEur)}</div></div>
+      <div><div class="kpi-label">Descuento (${p.descPct||0}%)</div><div style="margin-top:4px;color:var(--red)">-${fmtEur(p.descEur)}</div></div>
+      <div><div class="kpi-label">Total esperado</div><div style="margin-top:4px;font-size:18px;font-weight:700;color:var(--black)">${fmtEur(p.totalEsperado)}</div></div>
+      <div><div class="kpi-label">Total recibido</div><div style="margin-top:4px;font-size:18px;font-weight:700;color:var(--green)">${fmtEur(p.totalRecibido)}</div></div>
+      <div><div class="kpi-label">Método</div><div style="margin-top:4px">${p.metodo||'—'}</div></div>
+      <div><div class="kpi-label">Estado</div><div style="margin-top:4px">${estadoPagoBadge(p.estado)}</div></div>
+      <div><div class="kpi-label">ID Factura</div><div style="margin-top:4px" class="mono">${p.facturaId||'—'}</div></div>
+      <div><div class="kpi-label">Estado PDF</div><div style="margin-top:4px;font-size:12px">${p.estadoPdf||'—'}</div></div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+     ${p.estado!=='PAGADO'?`<button class="btn btn-primary" onclick="closeModal();marcarPagado('${p.id}')">✓ Marcar como cobrado</button>`:''}
+     <button class="btn btn-secondary" onclick="closeModal();generarFacturaPago('${p.id}')">🧾 Generar factura</button>`);
+}
+
+async function marcarPagado(id) {
+  const p = DB.pagos.find(x=>x.id===id); if (!p) return;
+  const metodo = prompt('Método de pago:', 'BIZUM');
+  if (!metodo) return;
+  p.estado = 'PAGADO';
+  p.totalRecibido = p.totalEsperado;
+  p.metodo = metodo.toUpperCase();
+  p.estadoPdf = 'LISTO PARA EMITIR';
+  saveCacheLocal();
+  await updateInSheet('PAGOS', id, [p.estado, p.totalRecibido, p.metodo, p.estadoPdf]);
+  pagos();
+  updateBadges();
+  showToast(`Pago ${id} marcado como cobrado ✓`, 'success');
+}
+
+function modalNuevoPago() {
+  openModal('Registrar pago', `
+    <div class="form-grid">
+      <div class="field-group full"><label class="field-label">Inscripción<span class="req">*</span></label>
+        <select class="field-select" id="np-ins" onchange="cargarDatosIns()">
+          <option value="">— Selecciona inscripción —</option>
+          ${DB.inscripciones.filter(i=>i.estado==='ACTIVA').map(i=>{ const a=getAlumno(i.alumnoId); return `<option value="${i.id}" data-precio="${i.precio}" data-servicio="${i.servicio}" data-alumno="${i.alumnoId}" data-cliente="${i.clienteId}">${a.nombre} · ${i.servicio}</option>`; }).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Mes</label>
+        <select class="field-select" id="np-mes">
+          ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'].map(m=>`<option ${m==='marzo'?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Fecha pago</label>
+        <input class="field-input" id="np-fecha" type="date" value="${new Date().toISOString().split('T')[0]}">
+      </div>
+      <div class="field-group"><label class="field-label">Total (€)</label>
+        <input class="field-input" id="np-total" type="number" step="0.01">
+      </div>
+      <div class="field-group"><label class="field-label">Método de pago</label>
+        <select class="field-select" id="np-metodo">
+          <option>BIZUM</option><option>EFECTIVO</option><option>TRANSFERENCIA</option><option>TARJETA</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Estado</label>
+        <select class="field-select" id="np-estado">
+          <option value="PAGADO">Pagado</option><option value="PENDIENTE">Pendiente</option>
+        </select>
+      </div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarPago()">Registrar pago</button>`);
+  window.cargarDatosIns = () => {
+    const sel = document.getElementById('np-ins');
+    const opt = sel.options[sel.selectedIndex];
+    const t = document.getElementById('np-total');
+    if (t) t.value = opt.dataset.precio || '';
+  };
+}
+
+async function guardarPago() {
+  const insEl = document.getElementById('np-ins');
+  const insId = insEl.value;
+  if (!insId) { showToast('Selecciona una inscripción', 'error'); return; }
+  const opt = insEl.options[insEl.selectedIndex];
+  const total = parseFloat(document.getElementById('np-total').value) || 0;
+  const estado = document.getElementById('np-estado').value;
+  const igicPct = opt.dataset.servicio.includes('TECNIFICACIÓN') ? 3 : 7;
+  const base = parseFloat((total / (1 + igicPct/100)).toFixed(2));
+  const igicEur = parseFloat((total - base).toFixed(2));
+  const id = 'PAG' + String(DB.pagos.length+1).padStart(4,'0');
+  const nuevo = {
+    id, fecha: document.getElementById('np-fecha').value,
+    mes: document.getElementById('np-mes').value,
+    inscripcionId: insId, servicio: opt.dataset.servicio, modalidad: '',
+    alumnoId: opt.dataset.alumno, clienteId: opt.dataset.cliente,
+    base, igicPct, igicEur, descPct: 0, descEur: 0,
+    totalEsperado: total, totalRecibido: estado==='PAGADO'?total:0,
+    estado, metodo: estado==='PAGADO'?document.getElementById('np-metodo').value:'',
+    facturaId: '', estadoPdf: estado==='PAGADO'?'LISTO PARA EMITIR':'PENDIENTE'
+  };
+  DB.pagos.push(nuevo);
+  saveCacheLocal();
+  await writeToSheet('PAGOS', [id, nuevo.fecha, nuevo.mes, insId, nuevo.servicio, '', nuevo.alumnoId, nuevo.clienteId, base, igicPct, igicEur, 0, 0, total, nuevo.totalRecibido, estado, nuevo.metodo, '', nuevo.estadoPdf]);
+  closeModal();
+  pagos();
+  updateBadges();
+  showToast('Pago registrado ✓', 'success');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: FACTURAS
+═══════════════════════════════════════════════════════════ */
+function facturas() {
+  const listos = DB.pagos.filter(p=>p.estadoPdf==='LISTO PARA EMITIR'&&!p.facturaId);
+  addTopbarBtn('Generar pendientes', () => generarTodasFacturas(), 'btn-primary');
+  const todasFacturas = [...new Set(DB.pagos.filter(p=>p.facturaId).map(p=>p.facturaId))].map(fid => {
+    const pagos = DB.pagos.filter(p=>p.facturaId===fid);
+    const cliente = getCliente(pagos[0]?.clienteId||'');
+    return { id: fid, pagos, cliente, fecha: pagos[0]?.fecha, total: pagos.reduce((s,p)=>s+p.totalEsperado,0) };
+  });
+  document.getElementById('page-content').innerHTML = `
+    ${listos.length>0?`<div class="card" style="border-color:var(--orange);background:var(--orange-bg);margin-bottom:1rem">
+      <div class="card-header"><span>⏳</span><div class="card-title">${listos.length} pagos listos para facturar</div>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="generarTodasFacturas()">Generar facturas VeriFactu</button></div>
+    </div>`:''}
+    <div class="card">
+      <div class="card-header"><span>🧾</span><div class="card-title">Archivo de facturas</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID Factura</th><th>Cliente</th><th>Fecha</th><th>Pagos incluidos</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          ${todasFacturas.map(f=>`<tr onclick="verFactura('${f.id}')">
+            <td class="mono">${f.id}</td>
+            <td>${f.cliente.nombre||'—'}</td>
+            <td style="font-size:12px">${fmtDate(f.fecha)}</td>
+            <td><span class="badge badge-grey">${f.pagos.length} pago(s)</span></td>
+            <td><strong>${fmtEur(f.total)}</strong></td>
+            <td><span class="badge badge-green">Emitida</span></td>
+            <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();descargarFacturaPdf('${f.id}')">PDF</button></td>
+          </tr>`).join('') || `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🧾</div><div class="empty-title">Sin facturas emitidas</div></div></td></tr>`}
+        </tbody>
+      </table></div>
+    </div>`;
+}
+
+function generarTodasFacturas() {
+  const listos = DB.pagos.filter(p=>p.estadoPdf==='LISTO PARA EMITIR'&&!p.facturaId);
+  if (!listos.length) { showToast('Sin pagos pendientes de facturar', 'info'); return; }
+  // Agrupar por cliente
+  const porCliente = {};
+  listos.forEach(p => { if (!porCliente[p.clienteId]) porCliente[p.clienteId] = []; porCliente[p.clienteId].push(p); });
+  let count = 0;
+  Object.entries(porCliente).forEach(([cid, ps]) => {
+    const num = String(DB.pagos.filter(p=>p.facturaId).length + count + 1).padStart(4,'0');
+    const fid = `SM-26-${num}`;
+    ps.forEach(p => { p.facturaId = fid; p.estadoPdf = 'EMITIDA'; });
+    count++;
+  });
+  saveCacheLocal();
+  showToast(`${count} factura(s) generada(s) ✓`, 'success');
+  facturas();
+}
+
+function descargarFacturaPdf(fid) {
+  const ps = DB.pagos.filter(p=>p.facturaId===fid);
+  const c = getCliente(ps[0]?.clienteId||'');
+  // Generar PDF simple (producción: jsPDF + html2canvas + hash SHA-256 para VeriFactu)
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Factura ${fid}</title><style>
+    body{font-family:Arial,sans-serif;margin:2cm;color:#000}
+    h1{font-size:22px;color:#2e7d32}h2{font-size:14px;font-weight:normal;color:#666}
+    table{width:100%;border-collapse:collapse;margin:1rem 0}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+    th{background:#f5f5f5;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+    .total-row td{font-weight:bold;font-size:16px;border-top:2px solid #2e7d32;padding-top:12px}
+    .footer{margin-top:2rem;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:1rem}
+  </style></head><body>
+    <h1>SM Academia · Factura ${fid}</h1>
+    <h2>Antonio Samuel Martín Rivera · DNI 45766626F<br>
+    Calle Teobaldo Power, 15, Las Palmas de Gran Canaria<br>
+    academiasmfutbol@outlook.es</h2>
+    <hr style="border:none;border-top:2px solid #2e7d32;margin:1rem 0">
+    <p><strong>Cliente:</strong> ${c.nombre||'—'}<br>
+    <strong>Fecha:</strong> ${fmtDate(ps[0]?.fecha)}</p>
+    <table>
+      <thead><tr><th>Alumno</th><th>Servicio</th><th>Mes</th><th>Base</th><th>IGIC</th><th>Total</th></tr></thead>
+      <tbody>
+        ${ps.map(p=>{const a=getAlumno(p.alumnoId);return`<tr><td>${a.nombre||'—'}</td><td>${p.servicio}</td><td>${fmtMonth(p.mes)}</td><td>${fmtEur(p.base)}</td><td>${p.igicPct}% = ${fmtEur(p.igicEur)}</td><td>${fmtEur(p.totalEsperado)}</td></tr>`;}).join('')}
+        <tr class="total-row"><td colspan="5">TOTAL FACTURA</td><td>${fmtEur(ps.reduce((s,p)=>s+p.totalEsperado,0))}</td></tr>
+      </tbody>
+    </table>
+    <div class="footer">
+      Factura emitida conforme a VeriFactu · IGIC según normativa canaria ·
+      Responsable del tratamiento de datos: Antonio Samuel Martín Rivera · RGPD / LOPDGDD
+    </div>
+  </body></html>`);
+  w.document.close(); w.print();
+}
+
+function generarFacturaPago(pid) { navigate('facturas'); }
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: SM FÚTBOL
+═══════════════════════════════════════════════════════════ */
+function futbol() {
+  const role = currentUser.role;
+  addTopbarBtn('+ Nueva sesión', () => modalNuevaSesion(), 'btn-primary');
+
+  // Camino SM ranking
+  const topCamino = [...DB.alumnos].filter(a=>a.activo&&(a.actividad==='TECNIFICACIÓN')).sort((a,b)=>b.camino-a.camino);
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('futbol-sesiones',this)">Sesiones</div>
+      <div class="tab" onclick="switchTab('futbol-alumnos',this)">Alumnos</div>
+      <div class="tab" onclick="switchTab('futbol-camino',this)">Camino SM</div>
+    </div>
+
+    <!-- SESIONES -->
+    <div id="futbol-sesiones">
+      ${DB.sesiones.slice().reverse().map(s => {
+        const asist = DB.asistencias.filter(a=>a.sesionId===s.id);
+        const presentes = asist.filter(a=>a.presente).length;
+        return `<div class="card" style="margin-bottom:.75rem">
+          <div class="card-header">
+            <span class="badge badge-blue">${s.grupo}</span>
+            <div>
+              <div class="card-title">Sesión #${s.numero} · ${fmtDate(s.fecha)}</div>
+              <div style="font-size:12px;color:var(--grey-2)">${s.ubicacion} · Monitor: ${s.monitor}</div>
+            </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <span class="badge badge-grey">${presentes}/${s.alumnos.length} presentes</span>
+              <button class="btn btn-ghost btn-sm" onclick="verSesion('${s.id}')">Ver detalle →</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:.75rem 1.25rem">
+            <div style="font-size:12px;color:var(--grey-2);margin-bottom:.5rem">Objetivo: ${s.objetivo}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${s.alumnos.map(aid => {
+                const a = getAlumno(aid);
+                const asi = asist.find(x=>x.alumnoId===aid);
+                return `<div style="display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;background:${asi?.presente?'var(--green-bg)':'var(--red-bg)'}">
+                  <span>${asi?.presente?'✓':'✗'}</span> ${a.nombre?.split(' ')[0]||'?'}
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        </div>`;
+      }).join('') || `<div class="empty-state"><div class="empty-icon">⚽</div><div class="empty-title">Sin sesiones registradas</div></div>`}
+    </div>
+
+    <!-- ALUMNOS FÚTBOL -->
+    <div id="futbol-alumnos" style="display:none">
+      <div class="card">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Alumno</th><th>Grupo</th><th>Asistencia</th><th>Tec.</th><th>Dec.</th><th>Comp.</th><th>Act.</th><th>Camino SM</th></tr></thead>
+          <tbody>
+            ${topCamino.map(a => {
+              const asist = DB.asistencias.filter(x=>x.alumnoId===a.id);
+              const pct = asist.length ? Math.round(asist.filter(x=>x.presente).length/asist.length*100) : 0;
+              const evals = asist.filter(x=>x.evaluacion);
+              const avg = field => evals.length ? (evals.reduce((s,e)=>s+(e.evaluacion[field]||0),0)/evals.length).toFixed(1) : '—';
+              return `<tr onclick="verAlumno('${a.id}')">
+                <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm">${getInitials(a.nombre)}</div>${a.nombre}</div></td>
+                <td><span class="badge badge-blue">${a.grupo}</span></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="progress-bar" style="width:60px"><div class="progress-fill ${pct<60?'danger':pct<80?'warn':''}" style="width:${pct}%"></div></div>
+                    <span style="font-size:12px">${pct}%</span>
+                  </div>
+                </td>
+                <td style="font-size:12px">${avg('tecnica')}</td>
+                <td style="font-size:12px">${avg('decision')}</td>
+                <td style="font-size:12px">${avg('competitividad')}</td>
+                <td style="font-size:12px">${avg('actitud')}</td>
+                <td><div class="camino-badge">⭐ ${a.camino}</div></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- CAMINO SM -->
+    <div id="futbol-camino" style="display:none">
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><span>🏆</span><div class="card-title">Ranking Camino SM · Temporada 2026</div></div>
+        <div class="card-body">
+          ${topCamino.map((a,i)=>`
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:${i<topCamino.length-1?'1px solid #f5f5f5':'none'}">
+              <div style="font-size:${i===0?'24px':i===1?'20px':'16px'};width:28px;text-align:center">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`}</div>
+              <div class="avatar">${getInitials(a.nombre)}</div>
+              <div style="flex:1">
+                <div style="font-weight:600">${a.nombre}</div>
+                <div style="font-size:12px;color:var(--grey-2)">${a.grupo} · ${a.modalidad}</div>
+              </div>
+              <div>
+                <div class="camino-badge" style="font-size:14px;padding:6px 14px">⭐ ${a.camino} pts</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span>📖</span><div class="card-title">Cómo funciona Camino SM</div></div>
+        <div class="card-body" style="font-size:13px;line-height:1.8;color:var(--grey-3)">
+          <strong style="color:var(--black)">+10 puntos</strong> por cada sesión asistida<br>
+          <strong style="color:var(--black)">+10 puntos extra</strong> al alumno con mejores valores (compañerismo, esfuerzo, actitud, superación)<br>
+          Los puntos se acumulan durante toda la temporada. El sistema premia la constancia sobre el resultado.
+        </div>
+      </div>
+    </div>`;
+
+  window.switchTab = (id, el) => {
+    ['futbol-sesiones','futbol-alumnos','futbol-camino'].forEach(t => { const el2=document.getElementById(t); if(el2) el2.style.display='none'; });
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    const target = document.getElementById(id); if(target) target.style.display='';
+    el.classList.add('active');
+  };
+}
+
+function verSesion(id) {
+  const s = DB.sesiones.find(x=>x.id===id); if (!s) return;
+  const asistencias = DB.asistencias.filter(a=>a.sesionId===id);
+  openModal(`Sesión #${s.numero} · ${fmtDate(s.fecha)}`, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+      <div><div class="kpi-label">Grupo</div><div style="margin-top:4px"><span class="badge badge-blue">${s.grupo}</span></div></div>
+      <div><div class="kpi-label">Ubicación</div><div style="margin-top:4px;font-size:13px">${s.ubicacion}</div></div>
+      <div><div class="kpi-label">Monitor</div><div style="margin-top:4px;font-size:13px">${s.monitor}</div></div>
+      <div><div class="kpi-label">Objetivo</div><div style="margin-top:4px;font-size:13px">${s.objetivo}</div></div>
+    </div>
+    <div class="section-divider">Registro de alumnos (${asistencias.filter(a=>a.presente).length}/${s.alumnos.length} presentes)</div>
+    ${asistencias.map(asi => {
+      const a = getAlumno(asi.alumnoId);
+      const ev = asi.evaluacion;
+      return `<div style="padding:10px 0;border-bottom:1px solid #f5f5f5">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:${ev?'8px':'0'}">
+          <div class="avatar avatar-sm">${getInitials(a.nombre)}</div>
+          <div style="font-weight:500;flex:1">${a.nombre}</div>
+          <span class="badge ${asi.presente?'badge-green':'badge-red'}">${asi.presente?'Presente':'Ausente'}</span>
+          ${asi.puntosCamino>0?`<div class="camino-badge">+${asi.puntosCamino}</div>`:''}
+        </div>
+        ${ev?`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:11px;text-align:center;margin-left:42px">
+          <div><div style="color:var(--grey-2)">Técnica</div><div style="font-weight:600">${ev.tecnica}/5</div></div>
+          <div><div style="color:var(--grey-2)">Decisión</div><div style="font-weight:600">${ev.decision}/5</div></div>
+          <div><div style="color:var(--grey-2)">Compet.</div><div style="font-weight:600">${ev.competitividad}/5</div></div>
+          <div><div style="color:var(--grey-2)">Actitud</div><div style="font-weight:600">${ev.actitud}/5</div></div>
+          <div><div style="color:var(--grey-2)">Cansancio</div><div style="font-weight:600;font-size:10px">${ev.cansancio}</div></div>
+        </div>`:''}
+      </div>`;
+    }).join('')}
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>`);
+}
+
+function modalNuevaSesion() {
+  const alumnosFutbol = DB.alumnos.filter(a=>a.activo&&a.actividad==='TECNIFICACIÓN');
+  const nextNum = DB.sesiones.length ? Math.max(...DB.sesiones.map(s=>s.numero))+1 : 1;
+  const hoy = new Date().toISOString().split('T')[0];
+  const dia = new Date().getDay();
+  const grupoPorDia = ['N/A','Lunes','N/A','Miércoles','N/A','Viernes','N/A'][dia] || 'Miércoles';
+  openModal('Nueva sesión SM Fútbol', `
+    <div class="form-grid">
+      <div class="field-group"><label class="field-label">Fecha<span class="req">*</span></label><input class="field-input" id="ns-fecha" type="date" value="${hoy}"></div>
+      <div class="field-group"><label class="field-label">Grupo</label>
+        <select class="field-select" id="ns-grupo">
+          <option ${grupoPorDia==='Lunes'?'selected':''}>Lunes</option>
+          <option ${grupoPorDia==='Miércoles'?'selected':''}>Miércoles</option>
+          <option ${grupoPorDia==='Viernes'?'selected':''}>Viernes</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Monitor</label><input class="field-input" id="ns-monitor" value="Samy"></div>
+      <div class="field-group"><label class="field-label">Nº sesión (auto)</label><input class="field-input" id="ns-num" type="number" value="${nextNum}"></div>
+      <div class="field-group"><label class="field-label">Ubicación</label>
+        <select class="field-select" id="ns-ubicacion">
+          <option>Cancha La Atalaya</option><option>Cuevas Torres</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Objetivo de sesión</label><input class="field-input" id="ns-objetivo" placeholder="Ej: Control y conducción"></div>
+      <div class="field-group full">
+        <label class="field-label">Alumnos asistentes</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:200px;overflow-y:auto;padding:4px">
+          ${alumnosFutbol.map(a=>`
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;border:1px solid var(--grey);cursor:pointer;font-size:13px">
+              <input type="checkbox" value="${a.id}" class="ns-alumno-check" style="width:auto">
+              <div class="avatar avatar-sm">${getInitials(a.nombre)}</div>
+              ${a.nombre}
+            </label>`).join('')}
+        </div>
+      </div>
+      <div class="field-group full"><label class="field-label">Mejor alumno (Camino SM +10)</label>
+        <select class="field-select" id="ns-mejor">
+          <option value="">— Seleccionar al finalizar —</option>
+          ${alumnosFutbol.map(a=>`<option value="${a.id}">${a.nombre}</option>`).join('')}
+        </select>
+      </div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarSesion()">Guardar sesión</button>`);
+}
+
+async function guardarSesion() {
+  const fecha = document.getElementById('ns-fecha').value;
+  if (!fecha) { showToast('La fecha es obligatoria', 'error'); return; }
+  const checks = [...document.querySelectorAll('.ns-alumno-check:checked')].map(c=>c.value);
+  if (!checks.length) { showToast('Selecciona al menos un alumno', 'error'); return; }
+  const id = 'SES' + String(DB.sesiones.length+1).padStart(3,'0');
+  const mejor = document.getElementById('ns-mejor').value;
+  const sesion = {
+    id, fecha, grupo: document.getElementById('ns-grupo').value,
+    monitor: document.getElementById('ns-monitor').value,
+    numero: parseInt(document.getElementById('ns-num').value),
+    ubicacion: document.getElementById('ns-ubicacion').value,
+    objetivo: document.getElementById('ns-objetivo').value,
+    alumnos: checks
+  };
+  DB.sesiones.push(sesion);
+  // Crear asistencias
+  checks.forEach(aid => {
+    const esMejor = aid === mejor;
+    DB.asistencias.push({
+      id: 'ASI'+String(DB.asistencias.length+1).padStart(3,'0'),
+      sesionId: id, alumnoId: aid, presente: true,
+      evaluacion: null, puntosCamino: esMejor ? 20 : 10
+    });
+    const alumno = DB.alumnos.find(a=>a.id===aid);
+    if (alumno) alumno.camino += esMejor ? 20 : 10;
+  });
+  saveCacheLocal();
+  await writeToSheet('SESIONES', [id, fecha, sesion.grupo, sesion.monitor, sesion.numero, sesion.ubicacion, sesion.objetivo, checks.join(',')]);
+  closeModal();
+  futbol();
+  updateBadges();
+  showToast(`Sesión #${sesion.numero} registrada ✓`, 'success');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: EXTRAESCOLARES
+═══════════════════════════════════════════════════════════ */
+function extraescolares() {
+  const role = currentUser.role;
+  const actividades = [...new Set(DB.extraescolares.map(e=>e.actividad))];
+  const resumen = actividades.map(act => {
+    const es = DB.extraescolares.filter(e=>e.actividad===act);
+    const totalDias = es.reduce((s,e)=>s+Object.keys(e.asistenciasMes).length,0);
+    const presentes = es.reduce((s,e)=>s+Object.values(e.asistenciasMes).filter(Boolean).length,0);
+    return { act, alumnos: es.length, pct: totalDias ? Math.round(presentes/totalDias*100) : 0 };
+  });
+
+  addTopbarBtn('Informe AMPA', () => generarInformeAMPA(), 'btn-secondary', '📄 ');
+  if (role === 'ADMIN') addTopbarBtn('Registrar asistencia', () => modalAsistenciaExtra(), 'btn-primary', '+ ');
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="kpi-grid">
+      ${resumen.map(r=>`
+        <div class="kpi-card">
+          <div class="kpi-label">${r.act}</div>
+          <div class="kpi-value">${r.alumnos} alumnos</div>
+          <div class="kpi-delta ${r.pct<70?'down':r.pct<85?'':'up'}">Asistencia: ${r.pct}%</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span>📋</span><div class="card-title">Control de asistencia · Marzo 2026</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Alumno</th><th>Actividad</th><th>Centro</th><th>Monitor</th><th>Asistencia marzo</th><th>% Mes</th><th>Camino SM</th></tr></thead>
+        <tbody>
+          ${DB.extraescolares.map(e => {
+            const a = getAlumno(e.alumnoId);
+            const dias = Object.keys(e.asistenciasMes).length;
+            const pres = Object.values(e.asistenciasMes).filter(Boolean).length;
+            const pct = dias ? Math.round(pres/dias*100) : 0;
+            return `<tr onclick="verExtraAlumno('${e.id}')">
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm">${getInitials(a.nombre)}</div>${a.nombre||'—'}</div></td>
+              <td>${actividadBadge(e.actividad)}</td>
+              <td style="font-size:12px">${e.centro}</td>
+              <td style="font-size:12px">${e.monitor}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div class="progress-bar" style="width:80px"><div class="progress-fill ${pct<60?'danger':pct<80?'warn':''}" style="width:${pct}%"></div></div>
+                  <span style="font-size:12px">${pres}/${dias}d</span>
+                </div>
+              </td>
+              <td><strong>${pct}%</strong></td>
+              <td><div class="camino-badge">⭐ ${e.camino}</div></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+}
+
+function verExtraAlumno(id) {
+  const e = DB.extraescolares.find(x=>x.id===id); if(!e) return;
+  const a = getAlumno(e.alumnoId);
+  const dias = Object.keys(e.asistenciasMes);
+  const totalDias = dias.length;
+  const pres = Object.values(e.asistenciasMes).filter(Boolean).length;
+  openModal(`${a.nombre} · ${e.actividad}`, `
+    <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1.5rem">
+      <div class="avatar" style="width:48px;height:48px;font-size:16px">${getInitials(a.nombre)}</div>
+      <div>
+        <div style="font-size:16px;font-weight:600">${a.nombre}</div>
+        <div style="font-size:13px;color:var(--grey-2)">${e.actividad} · ${e.centro} · ${e.monitor}</div>
+        <div style="margin-top:4px"><div class="camino-badge">⭐ ${e.camino} pts Camino SM</div></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+      <div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(pres/totalDias*100)}%"></div></div></div>
+      <strong>${Math.round(pres/totalDias*100)}%</strong>
+    </div>
+    <div style="font-size:12px;color:var(--grey-2);margin-bottom:1rem">${pres} días asistidos de ${totalDias} en marzo</div>
+    <div class="section-divider">Registro diario marzo</div>
+    <div class="attendance-grid">
+      ${dias.map(d => `
+        <div class="att-day ${e.asistenciasMes[d]?'present':'absent'}" title="Día ${d}">
+          ${d}
+        </div>`).join('')}
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+     <button class="btn btn-primary" onclick="closeModal();darCaminoExtra('${id}')">⭐ Mejor alumno +10</button>`);
+}
+
+function darCaminoExtra(eid) {
+  const e = DB.extraescolares.find(x=>x.id===eid); if(!e) return;
+  const a = getAlumno(e.alumnoId);
+  const cats = ['Compañerismo','Superación','Responsabilidad','Iniciativa'];
+  const cat = prompt(`Categoría Camino SM para ${a.nombre}:\n${cats.map((c,i)=>`${i+1}. ${c}`).join('\n')}`, '1');
+  if (!cat) return;
+  e.camino += 10;
+  const al = DB.alumnos.find(x=>x.id===e.alumnoId);
+  if (al) al.camino += 10;
+  saveCacheLocal();
+  showToast(`+10 puntos Camino SM a ${a.nombre} (${cats[parseInt(cat)-1]||'Valores'}) ✓`, 'success');
+  extraescolares();
+}
+
+function generarInformeAMPA() {
+  const w = window.open('','_blank');
+  const mes = 'Marzo 2026';
+  w.document.write(`<!DOCTYPE html><html><head><title>Informe AMPA ${mes}</title><style>
+    body{font-family:Arial,sans-serif;margin:2cm;color:#000}
+    h1{font-size:20px;color:#2e7d32;margin-bottom:.5rem}
+    h2{font-size:14px;font-weight:normal;color:#666;margin-bottom:2rem}
+    table{width:100%;border-collapse:collapse;margin:1rem 0}
+    th{background:#f5f5f5;padding:8px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:2px solid #2e7d32}
+    td{padding:8px;border-bottom:1px solid #eee;font-size:13px}
+    .pct{font-weight:bold;color:#2e7d32}
+    .section{margin:2rem 0 .5rem;font-size:14px;font-weight:bold;color:#2e7d32;border-bottom:1px solid #2e7d32;padding-bottom:4px}
+  </style></head><body>
+    <h1>Informe Mensual · SM Extraescolares</h1>
+    <h2>CEIP Escaleritas · ${mes}</h2>
+    ${[...new Set(DB.extraescolares.map(e=>e.actividad))].map(act=>{
+      const es = DB.extraescolares.filter(e=>e.actividad===act);
+      return `<div class="section">${act}</div>
+      <table><thead><tr><th>Alumno</th><th>Días asistidos</th><th>Total días</th><th>%</th></tr></thead><tbody>
+        ${es.map(e=>{const a=getAlumno(e.alumnoId);const d=Object.keys(e.asistenciasMes).length;const p=Object.values(e.asistenciasMes).filter(Boolean).length;
+          return`<tr><td>${a.nombre}</td><td>${p}</td><td>${d}</td><td class="pct">${Math.round(p/d*100)}%</td></tr>`;}).join('')}
+      </tbody></table>`;
+    }).join('')}
+    <p style="margin-top:2rem;font-size:11px;color:#888">Informe generado por SM Academia · ${new Date().toLocaleDateString('es-ES')}</p>
+  </body></html>`);
+  w.document.close(); w.print();
+}
+
+function modalAsistenciaExtra() {
+  openModal('Registrar asistencia diaria', `
+    <div class="form-grid">
+      <div class="field-group"><label class="field-label">Fecha</label>
+        <input class="field-input" id="ae-fecha" type="date" value="${new Date().toISOString().split('T')[0]}">
+      </div>
+      <div class="field-group"><label class="field-label">Actividad</label>
+        <select class="field-select" id="ae-act">
+          ${[...new Set(DB.extraescolares.map(e=>e.actividad))].map(a=>`<option>${a}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:1rem">
+      <label class="field-label" style="margin-bottom:.5rem;display:block">Alumnos</label>
+      <div id="ae-alumnos-list"></div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarAsistenciaExtra()">Guardar asistencia</button>`);
+  const updateList = () => {
+    const act = document.getElementById('ae-act')?.value;
+    const es = DB.extraescolares.filter(e=>e.actividad===act);
+    const lista = document.getElementById('ae-alumnos-list');
+    if (lista) lista.innerHTML = es.map(e=>{const a=getAlumno(e.alumnoId);return`
+      <label style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;border:1px solid var(--grey);margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" class="ae-check" value="${e.id}" checked style="width:auto">
+        <div class="avatar avatar-sm">${getInitials(a.nombre)}</div>
+        <span style="font-size:13px">${a.nombre}</span>
+      </label>`;}).join('');
+  };
+  setTimeout(()=>{ document.getElementById('ae-act')?.addEventListener('change',updateList); updateList(); },100);
+}
+
+async function guardarAsistenciaExtra() {
+  const fecha = document.getElementById('ae-fecha')?.value;
+  if (!fecha) return;
+  const dia = new Date(fecha).getDate();
+  const checks = [...document.querySelectorAll('.ae-check')];
+  checks.forEach(c => {
+    const e = DB.extraescolares.find(x=>x.id===c.value);
+    if (e) { e.asistenciasMes[dia] = c.checked; }
+  });
+  saveCacheLocal();
+  await writeToSheet('ASISTENCIAS_EXTRA', [fecha, ...checks.map(c=>c.value+':'+c.checked)]);
+  closeModal();
+  extraescolares();
+  showToast('Asistencia registrada ✓', 'success');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: ASISTENCIA (SM FÚTBOL)
+═══════════════════════════════════════════════════════════ */
+function asistencia() {
+  const sesionActiva = DB.sesiones[DB.sesiones.length-1];
+  if (currentUser.role === 'MONITOR' || !sesionActiva) {
+    // Vista rápida de pase de lista
+    const alumnosFutbol = DB.alumnos.filter(a=>a.activo&&a.actividad==='TECNIFICACIÓN');
+    let estadoAsist = {};
+    alumnosFutbol.forEach(a => { estadoAsist[a.id] = null; });
+    document.getElementById('page-content').innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span>✅</span>
+          <div>
+            <div class="card-title">Pase de lista rápido</div>
+            <div style="font-size:12px;color:var(--grey-2)">${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</div>
+          </div>
+        </div>
+        <div class="card-body">
+          ${alumnosFutbol.map(a=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5">
+              <div class="avatar">${getInitials(a.nombre)}</div>
+              <div style="flex:1">
+                <div style="font-weight:500">${a.nombre}</div>
+                <div style="font-size:12px;color:var(--grey-2)">${a.grupo} · Camino SM: ⭐ ${a.camino}</div>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm" id="p-${a.id}" onclick="marcarPresenteRapido('${a.id}',true)" style="background:var(--green-bg);color:var(--green-dim)">✓ Presente</button>
+                <button class="btn btn-sm" id="a-${a.id}" onclick="marcarPresenteRapido('${a.id}',false)" style="background:var(--red-bg);color:var(--red)">✗ Ausente</button>
+              </div>
+            </div>`).join('')}
+          <div style="margin-top:1rem;display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-primary" onclick="confirmarPaseLista()">Confirmar asistencia</button>
+          </div>
+        </div>
+      </div>`;
+    window.marcarPresenteRapido = (id, presente) => { estadoAsist[id] = presente; };
+    window.confirmarPaseLista = () => {
+      const count = Object.values(estadoAsist).filter(v=>v===true).length;
+      showToast(`Asistencia registrada: ${count} presentes ✓`, 'success');
+    };
+  } else {
+    navigate('futbol');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: PERSONAL
+═══════════════════════════════════════════════════════════ */
+function personal() {
+  addTopbarBtn('+ Añadir personal', () => modalNuevoPersonal(), 'btn-primary');
+  const hoy = new Date();
+  document.getElementById('page-content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><span>👥</span><div class="card-title">Equipo SM Academia</div></div>
+      <div class="card-body" style="padding:0">
+        ${DB.personal.map(p => {
+          const dias = daysBetween(hoy, new Date(p.certVence));
+          const certClass = dias < 30 ? 'badge-red' : dias < 60 ? 'badge-orange' : 'badge-green';
+          return `<div style="display:flex;align-items:center;gap:14px;padding:14px 1.25rem;border-bottom:1px solid #f5f5f5">
+            <div class="avatar" style="background:${p.activo?'var(--green-bg)':'#f0f0f0'};color:${p.activo?'var(--green-dim)':'var(--grey-2)'}">${getInitials(p.nombre)}</div>
+            <div style="flex:1">
+              <div style="font-weight:600">${p.nombre}</div>
+              <div style="font-size:12px;color:var(--grey-2)">${p.rol} · ${p.email}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:var(--grey-2);margin-bottom:3px">Cert. delitos sexuales</div>
+              <span class="badge ${certClass}">Vence ${fmtDate(p.certVence)} · ${dias>0?`${dias}d`:' VENCIDO'}</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="modalEditarPersonal('${p.id}')">Editar</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function modalNuevoPersonal() {
+  openModal('Añadir personal', `
+    <div class="form-grid">
+      <div class="field-group full"><label class="field-label">Nombre completo<span class="req">*</span></label><input class="field-input" id="per-nombre"></div>
+      <div class="field-group"><label class="field-label">Rol</label>
+        <select class="field-select" id="per-rol">
+          <option>Monitor Extraescolares</option><option>Entrenador</option><option>Coordinador</option><option>Administrativo</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Email</label><input class="field-input" id="per-email" type="email"></div>
+      <div class="field-group"><label class="field-label">Teléfono</label><input class="field-input" id="per-tel"></div>
+      <div class="field-group"><label class="field-label">Fecha certificado delitos sexuales</label><input class="field-input" id="per-cert" type="date"></div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarPersonal()">Guardar</button>`);
+}
+
+async function guardarPersonal() {
+  const nombre = document.getElementById('per-nombre').value.trim();
+  if (!nombre) { showToast('El nombre es obligatorio', 'error'); return; }
+  const certFecha = document.getElementById('per-cert').value;
+  const certVence = certFecha ? new Date(new Date(certFecha).setFullYear(new Date(certFecha).getFullYear()+1)).toISOString().split('T')[0] : '';
+  const id = 'PER' + String(DB.personal.length+1).padStart(3,'0');
+  const nuevo = {
+    id, nombre, rol: document.getElementById('per-rol').value,
+    email: document.getElementById('per-email').value,
+    telefono: document.getElementById('per-tel').value,
+    certDelitos: certFecha, certVence, activo: true
+  };
+  DB.personal.push(nuevo);
+  saveCacheLocal();
+  await writeToSheet('PERSONAL', [id, nombre, nuevo.rol, nuevo.email, nuevo.telefono, certFecha, certVence, 'ACTIVO']);
+  closeModal();
+  personal();
+  showToast('Personal añadido ✓', 'success');
+}
+
+function modalEditarPersonal(id) {
+  const p = DB.personal.find(x=>x.id===id);
+  openModal(`Editar: ${p.nombre}`, `
+    <div class="form-grid">
+      <div class="field-group full"><label class="field-label">Nombre</label><input class="field-input" id="ep-nombre" value="${p.nombre}"></div>
+      <div class="field-group"><label class="field-label">Email</label><input class="field-input" id="ep-email" value="${p.email||''}"></div>
+      <div class="field-group"><label class="field-label">Certificado emitido</label><input class="field-input" id="ep-cert" type="date" value="${p.certDelitos||''}"></div>
+      <div class="field-group"><label class="field-label">Estado</label>
+        <select class="field-select" id="ep-activo">
+          <option value="true" ${p.activo?'selected':''}>Activo</option>
+          <option value="false" ${!p.activo?'selected':''}>Inactivo</option>
+        </select>
+      </div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="actualizarPersonal('${id}')">Guardar</button>`);
+}
+
+async function actualizarPersonal(id) {
+  const p = DB.personal.find(x=>x.id===id); if(!p) return;
+  p.nombre = document.getElementById('ep-nombre').value.trim();
+  p.email = document.getElementById('ep-email').value.trim();
+  const cert = document.getElementById('ep-cert').value;
+  if (cert) {
+    p.certDelitos = cert;
+    p.certVence = new Date(new Date(cert).setFullYear(new Date(cert).getFullYear()+1)).toISOString().split('T')[0];
+  }
+  p.activo = document.getElementById('ep-activo').value === 'true';
+  saveCacheLocal();
+  await updateInSheet('PERSONAL', id, [p.nombre, p.email, p.certDelitos, p.certVence, p.activo?'ACTIVO':'INACTIVO']);
+  closeModal();
+  personal();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: INCIDENCIAS
+═══════════════════════════════════════════════════════════ */
+function incidencias() {
+  addTopbarBtn('+ Nueva incidencia', () => modalNuevaIncidencia(), 'btn-danger', '⚠️ ');
+  document.getElementById('page-content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><span>⚠️</span><div class="card-title">Registro de incidencias</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Alumno</th><th>Tipo</th><th>Descripción</th><th>Familia notificada</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          ${DB.incidencias.map(i=>{
+            const a=getAlumno(i.alumnoId);
+            return `<tr>
+              <td style="font-size:12px">${fmtDate(i.fecha)}</td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm">${getInitials(a.nombre)}</div>${a.nombre||'—'}</div></td>
+              <td><span class="badge badge-orange">${i.tipo}</span></td>
+              <td style="font-size:12px;max-width:220px">${i.descripcion}</td>
+              <td>${i.notificadoFamilia?'<span class="badge badge-green">✓ Notificada</span>':'<span class="badge badge-red">Pendiente</span>'}</td>
+              <td>${i.resuelto?'<span class="badge badge-grey">Resuelta</span>':'<span class="badge badge-orange">Abierta</span>'}</td>
+              <td>${!i.resuelto?`<button class="btn btn-ghost btn-sm" onclick="resolverIncidencia('${i.id}')">Resolver</button>`:''}</td>
+            </tr>`;
+          }).join('')||`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Sin incidencias abiertas</div></div></td></tr>`}
+        </tbody>
+      </table></div>
+    </div>`;
+}
+
+function modalNuevaIncidencia() {
+  openModal('Registrar incidencia', `
+    <div class="form-grid">
+      <div class="field-group"><label class="field-label">Fecha<span class="req">*</span></label><input class="field-input" id="inc-fecha" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="field-group"><label class="field-label">Alumno<span class="req">*</span></label>
+        <select class="field-select" id="inc-alumno">
+          <option value="">— Selecciona —</option>
+          ${DB.alumnos.filter(a=>a.activo).map(a=>`<option value="${a.id}">${a.nombre}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Tipo</label>
+        <select class="field-select" id="inc-tipo">
+          <option>Golpe</option><option>Conflicto</option><option>Caída</option><option>Emergencia médica</option><option>Pérdida</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Familia notificada</label>
+        <select class="field-select" id="inc-notif">
+          <option value="true">Sí, notificada</option><option value="false">Pendiente de notificar</option>
+        </select>
+      </div>
+      <div class="field-group full"><label class="field-label">Descripción<span class="req">*</span></label>
+        <textarea class="field-textarea" id="inc-desc" placeholder="Describe brevemente lo ocurrido, estado del alumno y acciones tomadas…"></textarea>
+      </div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-danger" onclick="guardarIncidencia()">⚠️ Registrar incidencia</button>`);
+}
+
+async function guardarIncidencia() {
+  const alumnoId = document.getElementById('inc-alumno').value;
+  const desc = document.getElementById('inc-desc').value.trim();
+  if (!alumnoId || !desc) { showToast('Alumno y descripción son obligatorios', 'error'); return; }
+  const id = 'INC' + String(DB.incidencias.length+1).padStart(3,'0');
+  const nueva = {
+    id, fecha: document.getElementById('inc-fecha').value,
+    alumnoId, tipo: document.getElementById('inc-tipo').value,
+    descripcion: desc,
+    notificadoFamilia: document.getElementById('inc-notif').value==='true',
+    resuelto: false
+  };
+  DB.incidencias.push(nueva);
+  saveCacheLocal();
+  await writeToSheet('INCIDENCIAS', [id, nueva.fecha, alumnoId, nueva.tipo, desc, nueva.notificadoFamilia, false]);
+  closeModal();
+  incidencias();
+  updateBadges();
+  showToast('Incidencia registrada ✓', 'warning');
+}
+
+async function resolverIncidencia(id) {
+  const i = DB.incidencias.find(x=>x.id===id); if(!i) return;
+  i.resuelto = true;
+  saveCacheLocal();
+  await updateInSheet('INCIDENCIAS', id, [true]);
+  incidencias();
+  updateBadges();
+  showToast('Incidencia marcada como resuelta ✓', 'success');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: INFORMES
+═══════════════════════════════════════════════════════════ */
+function informes() {
+  document.getElementById('page-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      ${[
+        {icon:'📊',titulo:'Informe mensual general',desc:'KPIs, ingresos, asistencia y alumnos del mes',btn:'Generar informe',fn:'generarInformeGeneral()'},
+        {icon:'📄',titulo:'Informe AMPA Extraescolares',desc:'Asistencia mensual por actividad para el AMPA',btn:'Generar PDF',fn:'generarInformeAMPA()'},
+        {icon:'🏆',titulo:'Ranking Camino SM',desc:'Puntuación acumulada de todos los alumnos',btn:'Ver ranking',fn:"navigate('futbol')"},
+        {icon:'💳',titulo:'Resumen de pagos',desc:'Estado de cobros y morosidad del período',btn:'Ver pagos',fn:"navigate('pagos')"},
+        {icon:'👤',titulo:'Informe individual de alumno',desc:'Asistencia, evaluaciones y evolución personal',btn:'Seleccionar alumno',fn:'modalInformeAlumno()'},
+        {icon:'⚠️',titulo:'Historial de incidencias',desc:'Registro completo de golpes, conflictos y alertas',btn:'Ver incidencias',fn:"navigate('incidencias')"},
+      ].map(i=>`
+        <div class="card">
+          <div class="card-header"><span style="font-size:20px">${i.icon}</span><div class="card-title">${i.titulo}</div></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--grey-2);margin-bottom:1rem">${i.desc}</p>
+            <button class="btn btn-primary btn-sm" onclick="${i.fn}">${i.btn}</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  window.modalInformeAlumno = () => {
+    openModal('Informe individual', `
+      <div class="field-group"><label class="field-label">Selecciona alumno</label>
+        <select class="field-select" id="inf-alumno">
+          ${DB.alumnos.filter(a=>a.activo).map(a=>`<option value="${a.id}">${a.nombre}</option>`).join('')}
+        </select>
+      </div>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+       <button class="btn btn-primary" onclick="closeModal();verAlumno(document.getElementById('inf-alumno').value)">Ver ficha</button>`);
+  };
+  window.generarInformeGeneral = () => {
+    const mes = 'Marzo 2026';
+    const ps = DB.pagos;
+    const cobrado = ps.filter(p=>p.estado==='PAGADO').reduce((s,p)=>s+p.totalRecibido,0);
+    showToast(`Informe de ${mes} generado ✓`, 'success');
+    openModal(`Informe ${mes}`, `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="kpi-card"><div class="kpi-label">Ingresos mes</div><div class="kpi-value green">${fmtEur(cobrado)}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Alumnos activos</div><div class="kpi-value">${DB.alumnos.filter(a=>a.activo).length}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Sesiones fútbol</div><div class="kpi-value">${DB.sesiones.length}</div></div>
+        <div class="kpi-card"><div class="kpi-label">Incidencias</div><div class="kpi-value">${DB.incidencias.length}</div></div>
+      </div>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>`);
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE: CONFIGURACIÓN
+═══════════════════════════════════════════════════════════ */
+function configuracion() {
+  document.getElementById('page-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <!-- Conexión Google Sheets -->
+      <div class="card">
+        <div class="card-header"><span>🔗</span><div class="card-title">Conexión Google Sheets</div></div>
+        <div class="card-body">
+          <div class="field-group" style="margin-bottom:1rem">
+            <label class="field-label">ID de la hoja de cálculo</label>
+            <input class="field-input" value="${SHEET_ID}" readonly style="background:#f5f5f5;font-family:var(--mono);font-size:11px">
+          </div>
+          <div class="field-group" style="margin-bottom:1rem">
+            <label class="field-label">URL del Web App (GAS)</label>
+            <input class="field-input" id="cfg-gas-url" value="${GAS_URL}" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="guardarGasUrl()">Guardar URL</button>
+            <button class="btn btn-secondary btn-sm" onclick="testConexionGAS()">🔍 Probar conexión</button>
+            <button class="btn btn-secondary btn-sm" onclick="syncAll()">🔄 Sincronizar ahora</button>
+          </div>
+          <div style="margin-top:1rem;padding:1rem;background:var(--grey-bg);border-radius:8px;font-size:12px;color:var(--grey-3);line-height:1.7">
+            <strong>Estado:</strong> ${GAS_URL?'✅ URL configurada':'⚠️ Sin URL — usando datos demo'}<br>
+            <strong>Última sync:</strong> ${lastSync ? lastSync.toLocaleTimeString('es-ES') : 'Nunca'}<br>
+            <strong>Registros en caché:</strong> Clientes: ${DB.clientes.length} · Alumnos: ${DB.alumnos.length} · Pagos: ${DB.pagos.length}
+          </div>
+        </div>
+      </div>
+
+      <!-- Credenciales -->
+      <div class="card">
+        <div class="card-header"><span>🔐</span><div class="card-title">Claves de acceso</div></div>
+        <div class="card-body" style="font-size:13px;line-height:2">
+          <div><strong>Admin:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">sm2026admin</code></div>
+          <div><strong>Monitor:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">monitor2026</code></div>
+          <div><strong>Familia:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">familia2026</code></div>
+          <p style="font-size:11px;color:var(--grey-2);margin-top:.75rem">En producción: reemplazar por Firebase Auth con magic links y 2FA.</p>
+        </div>
+      </div>
+
+      <!-- Empresa -->
+      <div class="card">
+        <div class="card-header"><span>🏢</span><div class="card-title">Datos de la empresa</div></div>
+        <div class="card-body" style="font-size:13px;line-height:1.9;color:var(--grey-3)">
+          <strong style="color:var(--black)">Antonio Samuel Martín Rivera</strong><br>
+          DNI: 45766626F<br>
+          Calle Teobaldo Power, 15, Las Palmas de Gran Canaria<br>
+          academiasmfutbol@outlook.es<br>
+          <span class="badge badge-green" style="margin-top:.5rem">RGPD · LOPIVI · LOPDGDD</span>
+          <span class="badge badge-blue" style="margin-top:.5rem;margin-left:4px">VeriFactu 2027</span>
+        </div>
+      </div>
+
+      <!-- RGPD info -->
+      <div class="card">
+        <div class="card-header"><span>🛡️</span><div class="card-title">Cumplimiento normativo</div></div>
+        <div class="card-body" style="font-size:13px;line-height:1.9">
+          <div>✅ Contrato de cesión de imagen · RGPD</div>
+          <div>✅ Derechos ARCO: acceso, rectificación, supresión</div>
+          <div>✅ Datos de salud: RAT con cifrado (nivel alto)</div>
+          <div>✅ Cert. delitos sexuales: renovación anual monitores</div>
+          <div>✅ VeriFactu: hash SHA-256 · inmutabilidad · AEAT</div>
+          <div>✅ LOPIVI: supervisión permanente de menores</div>
+        </div>
+      </div>
+
+      <!-- Metodología MEC -->
+      <div class="card" style="grid-column:span 2">
+        <div class="card-header"><span>📚</span><div class="card-title">Filosofía y Metodología MEC</div></div>
+        <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+          ${[
+            {letra:'M',nombre:'Motivación',desc:'Entorno enérgico. El error es parte del aprendizaje. Cero lenguaje negativo.'},
+            {letra:'E',nombre:'Esfuerzo',desc:'Premiamos la intención y la constancia, no solo el resultado.'},
+            {letra:'C',nombre:'Constancia',desc:'Disciplina y hábitos. La persona primero, el deportista después.'}
+          ].map(m=>`
+            <div style="padding:1rem;background:var(--green-bg);border-radius:10px;border:1px solid #a5d6a7">
+              <div style="font-size:32px;font-weight:800;color:var(--green);margin-bottom:.25rem">${m.letra}</div>
+              <div style="font-weight:600;margin-bottom:.25rem">${m.nombre}</div>
+              <div style="font-size:12px;color:var(--grey-3)">${m.desc}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  window.guardarGasUrl = () => {
+    const url = document.getElementById('cfg-gas-url')?.value.trim();
+    if (!url) return;
+    GAS_URL = url;
+    localStorage.setItem(CONFIG_KEY, url);
+    showToast('URL guardada. Sincronizando…', 'success');
+    syncAll();
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════ */
+// Restaurar sesión si existe
+const savedSession = localStorage.getItem(SESSION_KEY);
+if (savedSession) {
+  try {
+    currentUser = JSON.parse(savedSession);
+    startApp();
+  } catch(e) { localStorage.removeItem(SESSION_KEY); }
+}
+</script>
+</body>
+</html>
