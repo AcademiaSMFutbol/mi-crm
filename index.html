@@ -1193,9 +1193,14 @@ function doLogin() {
   const role = document.getElementById('login-role').value;
   const pass = document.getElementById('login-pass').value;
   const err = document.getElementById('login-error');
-  if (!role) { err.style.display = 'block'; err.textContent = 'Selecciona un rol.'; return; }
+  err.style.display = 'block';
+  if (!role) { err.textContent = 'Selecciona un rol.'; return; }
   const cred = CREDENTIALS[role];
-  if (!cred || pass !== cred.pass) { err.style.display = 'block'; return; }
+  if (!cred) { err.textContent = 'Rol no encontrado: ' + role; return; }
+  if (pass !== cred.pass) {
+    err.textContent = 'Contraseña incorrecta para ' + role + '. Intro: "' + pass + '" · Esperada: ' + cred.pass.length + ' chars';
+    return;
+  }
   err.style.display = 'none';
   let name = cred.name;
   if (role === 'MONITOR') {
@@ -2908,49 +2913,49 @@ function extraescolares() {
   }
 
   const mesActual = getMesActual();
-  document.getElementById('page-content').innerHTML = \`
+  document.getElementById('page-content').innerHTML = `
     <div class="kpi-grid">
-      \${resumen.map(r=>\`
+      ${resumen.map(r=>`
         <div class="kpi-card">
-          <div class="kpi-label">\${r.act}</div>
-          <div class="kpi-value">\${r.alumnos} alumnos</div>
+          <div class="kpi-label">${r.act}</div>
+          <div class="kpi-value">${r.alumnos} alumnos</div>
           <div class="kpi-delta">CEIP Escaleritas</div>
-        </div>\`).join('')}
+        </div>`).join('')}
       <div class="kpi-card">
         <div class="kpi-label">Alumnos únicos</div>
-        <div class="kpi-value green">\${alumnosExtra.length}</div>
-        <div class="kpi-delta">\${inscrExtra.length} inscripciones activas</div>
+        <div class="kpi-value green">${alumnosExtra.length}</div>
+        <div class="kpi-delta">${inscrExtra.length} inscripciones activas</div>
       </div>
     </div>
 
     <div class="card">
       <div class="card-header">
         <span>📋</span>
-        <div class="card-title">Alumnos CEIP Escaleritas · \${fmtMonth(mesActual)}</div>
-        <span style="margin-left:auto;font-size:12px;color:var(--grey-2)">\${alumnosExtra.length} alumnos · \${inscrExtra.length} inscripciones</span>
+        <div class="card-title">Alumnos CEIP Escaleritas · ${fmtMonth(mesActual)}</div>
+        <span style="margin-left:auto;font-size:12px;color:var(--grey-2)">${alumnosExtra.length} alumnos · ${inscrExtra.length} inscripciones</span>
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Alumno</th><th>Actividades</th><th>Curso</th><th>Familia</th></tr></thead>
         <tbody>
-          \${alumnosExtra.length ? alumnosExtra.map(({ alumnoId, inscripciones }) => {
+          ${alumnosExtra.length ? alumnosExtra.map(({ alumnoId, inscripciones }) => {
             const a = getAlumno(alumnoId);
             const c = getCliente(inscripciones[0]?.clienteId || '');
             const nombreAlumno = a.nombre || String(inscripciones[0]?.claveAlumno||'').split('|').slice(1).join('|') || '—';
             const nombreCliente = c.nombre || String(inscripciones[0]?.claveCliente||'').split('|').slice(1).join('|') || '—';
             const badges = inscripciones.map(i => actividadBadge(i.servicio || i.SERVICIO || '—')).join(' ');
-            return \`<tr onclick="verExtraAlumno('\${alumnoId}')" style="cursor:pointer">
+            return `<tr onclick="verExtraAlumno('${alumnoId}')" style="cursor:pointer">
               <td><div style="display:flex;align-items:center;gap:8px">
-                <div class="avatar avatar-sm">\${getInitials(nombreAlumno)}</div>
-                <div style="font-weight:500">\${nombreAlumno}</div>
+                <div class="avatar avatar-sm">${getInitials(nombreAlumno)}</div>
+                <div style="font-weight:500">${nombreAlumno}</div>
               </div></td>
-              <td style="line-height:2">\${badges}</td>
-              <td style="font-size:12px;color:var(--grey-2)">\${a.curso||'—'}</td>
-              <td style="font-size:12px;color:var(--grey-2)">\${nombreCliente}</td>
-            </tr>\`;
+              <td style="line-height:2">${badges}</td>
+              <td style="font-size:12px;color:var(--grey-2)">${a.curso||'—'}</td>
+              <td style="font-size:12px;color:var(--grey-2)">${nombreCliente}</td>
+            </tr>`;
           }).join('') : '<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">🏫</div><div class="empty-title">Sin alumnos en CEIP Escaleritas</div></div></td></tr>'}
         </tbody>
       </table></div>
-    </div>\`;
+    </div>`;
 }
 
 function verExtraAlumno(alumnoId) {
