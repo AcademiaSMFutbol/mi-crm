@@ -1228,6 +1228,49 @@ async function testConexionGAS() {
   }
 }
 
+async function diagnosticoSesiones() {
+  if (!GAS_URL) { showToast('No hay URL configurada', 'error'); return; }
+  showToast('Inspeccionando hoja SESIONES SM FÚTBOL…', 'info');
+  try {
+    const res = await gasRequest('INSPECT_SESIONES');
+    if (res.ok) {
+      const msg = [
+        '📋 Hoja: ' + res.nombre_hoja,
+        '📊 Filas registradas: ' + res.total_filas,
+        '🔑 Headers (' + res.headers.length + '): ' + res.headers.join(' | '),
+      ].join('\n');
+      openModal('Diagnóstico SESIONES SM FÚTBOL', `
+        <div style="font-size:13px;margin-bottom:1rem">
+          <div style="margin-bottom:.5rem"><strong>Hoja encontrada:</strong> <code>${res.nombre_hoja}</code></div>
+          <div style="margin-bottom:.5rem"><strong>Filas registradas:</strong> ${res.total_filas}</div>
+          <div style="margin-bottom:.75rem"><strong>Headers (${res.headers.length}):</strong></div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:1rem">
+            ${(res.headers||[]).map(h => `<code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:11px">${h}</code>`).join('')}
+          </div>
+          ${res.ultima_fila && res.ultima_fila.length ? `
+            <div style="font-weight:600;margin-bottom:.5rem">Última fila registrada:</div>
+            <div style="font-size:11px;color:var(--grey-2);word-break:break-all">${JSON.stringify(res.ultima_fila)}</div>` : ''}
+        </div>`,
+        `<button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`);
+    } else {
+      openModal('❌ Hoja no encontrada', `
+        <div style="font-size:13px">
+          <div style="color:var(--red);margin-bottom:1rem">${res.error || 'Error desconocido'}</div>
+          <div style="font-weight:600;margin-bottom:.5rem">Hojas disponibles en BASE DATOS SM:</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            ${(res.hojas_disponibles||[]).map(h => `<code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:11px">${h}</code>`).join('')}
+          </div>
+          <div style="margin-top:1rem;font-size:12px;color:var(--grey-2)">
+            El GAS busca una hoja que contenga "SESIONES" en el nombre. ¿Existe en tu Sheet?
+          </div>
+        </div>`,
+        `<button class="btn btn-primary" onclick="closeModal()">Cerrar</button>`);
+    }
+  } catch (e) {
+    showToast('❌ Error: ' + e.message, 'error');
+  }
+}
+
 function saveCacheLocal() {
   try { localStorage.setItem(DATA_KEY, JSON.stringify({ data: DB, ts: Date.now() })); } catch(e) {}
 }
