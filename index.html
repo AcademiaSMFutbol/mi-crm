@@ -884,37 +884,45 @@ function normalizarDB(raw) {
     }
 
     // ── Camino SM: aplicar SOLO a alumnos de tecnificación ──────
-    // Identificamos por primer nombre (el formato en CLAVE ALUMNO es "id|NOMBRE APELLIDOS")
-    // Para evitar cruces con apellidos, comparamos SOLO el primer token del nombre del alumno
-    // con la clave del mapa. Los casos ambiguos (Diego López, Leo Suárez, Caleb) se tratan
-    // primero porque su primer nombre coincidiría con otras entradas.
+    // Estrategia de match (en orden de prioridad):
+    // 1. Clave de dos palabras exacta al inicio del nombre (ej: "DIEGO LÓPEZ")
+    // 2. Cualquier token del nombre completo que coincida con una clave del mapa
+    //    → esto resuelve casos como ANTONIO EZEQUIEL (clave "EZEQUIEL")
+    //    → y evita que "DIEGO" matchee un apellido "DIEGO" de otro alumno
     if (DB._pendingCaminoSM) {
       delete DB._pendingCaminoSM;
       DB.alumnos.forEach(al => {
-        // Solo tecnificación
+        // Solo tecnificación — extraescolares quedan en 0
         if (al.actividad !== 'TECNIFICACIÓN') { al.camino = 0; return; }
+
         const nombre = (al.nombre || '').toUpperCase();
-        // Casos con nombre compuesto que necesitan match exacto de las primeras dos palabras
-        const especiales = {
-          'DIEGO LÓPEZ':  ['DIEGO LÓPEZ'],
-          'LEO SUÁREZ':   ['LEO SUÁREZ', 'LEO S'],
-          'DIEGO RODRÍGUEZ': ['DIEGO RODRÍGUEZ', 'DIEGO R'],  // Diego que no es Diego López
-        };
         let pts = null;
-        // 1. Intentar match de dos palabras (especiales)
-        for (const [clave, patrones] of Object.entries(especiales)) {
-          if (patrones.some(p => nombre.startsWith(p))) {
-            pts = CAMINO_SM_INICIAL[clave] ?? null;
+
+        // 1. Claves compuestas (dos palabras) — se comprueban primero para evitar
+        //    que "DIEGO" matchee tanto a DIEGO como a DIEGO LÓPEZ
+        const clavesCompuestas = Object.keys(CAMINO_SM_INICIAL)
+          .filter(k => k.includes(' '))
+          .sort((a,b) => b.length - a.length);  // más largas primero
+        for (const clave of clavesCompuestas) {
+          if (nombre.startsWith(clave) || nombre.includes(' ' + clave + ' ') || nombre.includes(' ' + clave)) {
+            pts = CAMINO_SM_INICIAL[clave];
             break;
           }
         }
-        // 2. Si no coincidió, usar solo primer nombre
+
+        // 2. Buscar por cualquier token del nombre completo
+        //    Ejemplo: "ANTONIO EZEQUIEL MARTÍN PÉREZ" → tokens ["ANTONIO","EZEQUIEL","MARTÍN","PÉREZ"]
+        //    → "EZEQUIEL" existe en el mapa → 310 pts
         if (pts === null) {
-          const primerNombre = nombre.split(' ')[0];
-          if (CAMINO_SM_INICIAL.hasOwnProperty(primerNombre)) {
-            pts = CAMINO_SM_INICIAL[primerNombre];
+          const tokens = nombre.split(' ').filter(Boolean);
+          for (const token of tokens) {
+            if (CAMINO_SM_INICIAL.hasOwnProperty(token)) {
+              pts = CAMINO_SM_INICIAL[token];
+              break;
+            }
           }
         }
+
         al.camino = pts !== null ? pts : 0;
       });
     }
