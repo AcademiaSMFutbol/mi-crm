@@ -1126,7 +1126,7 @@ function normalizarDB(raw) {
         const decision       = parseFloat(s['DECISIÓN'])       || 0;
         const competitividad = parseFloat(s['COMPETITIVIDAD']) || 0;
         const actitud        = parseFloat(s['ACTITUD'])        || 0;
-        const cansancio      = String(s['↑↓'] || '').trim();   // Bien/Regular/Cansado/Muy cansado
+        const cansancio      = String(s['CANSANCIO'] || s['↑↓'] || '').trim();
         const esMejor        = String(s['MEJOR ALUMNO'] || '').toUpperCase() === 'TRUE';
 
         const evaluacion = (tecnica || decision || competitividad || actitud || cansancio)
@@ -2788,7 +2788,7 @@ function verSesion(id) {
 }
 
 function modalNuevaSesion() {
-  // Alumnos de tecnificación: los que tienen inscripción activa en TECNIFICACIÓN
+  // Alumnos de tecnificación activos
   const idsTecni = new Set(
     DB.inscripciones
       .filter(i => i.estado === 'ACTIVA' && String(i.servicio||'').toUpperCase().includes('TECNIFICACIÓN'))
@@ -2799,47 +2799,76 @@ function modalNuevaSesion() {
     return activo && (idsTecni.has(String(a.id)) || a.actividad === 'TECNIFICACIÓN');
   }).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
 
-  const nextNum = DB.sesiones.length ? Math.max(...DB.sesiones.map(s => parseInt(s.numero)||0))+1 : 117;
-  const hoy = new Date().toISOString().split('T')[0];
-  const DIAS_SEMANA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  const dia = new Date().getDay();
-  const grupoPorDia = DIAS_SEMANA[dia] || 'Lunes';
+  const nextNum    = DB.sesiones.length ? Math.max(...DB.sesiones.map(s => parseInt(s.numero)||0))+1 : 117;
+  const hoy        = new Date().toISOString().split('T')[0];
+  const DIAS_ES    = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const grupoPorDia = DIAS_ES[new Date().getDay()] || 'Lunes';
+
+  // Helper: botones de pulsación 1-N con color
+  const botonesEval = (fieldId, alumnoId, max, color) =>
+    Array.from({length: max}, (_,i) => i+1).map(n =>
+      `<button type="button" class="eval-star" data-field="${fieldId}" data-alumno="${alumnoId}" data-val="${n}" data-max="${max}"
+        onclick="setEval('${alumnoId}','${fieldId}',${n},${max},'${color}')"
+        style="min-width:${max===10?'18px':'22px'};height:22px;border:1px solid var(--grey);border-radius:3px;
+               background:#fff;font-size:${max===10?'9px':'11px'};cursor:pointer;padding:0;font-weight:600">${n}</button>`
+    ).join('');
 
   openModal('Nueva sesión SM Fútbol', `
+    <!-- ── Datos generales de sesión ── -->
     <div class="form-grid">
-      <div class="field-group"><label class="field-label">Fecha<span class="req">*</span></label>
-        <input class="field-input" id="ns-fecha" type="date" value="${hoy}"></div>
-      <div class="field-group"><label class="field-label">Grupo</label>
-        <input class="field-input" id="ns-grupo" readonly
-               style="background:#f5f5f5;cursor:default;color:var(--grey-2)"
-               value="${grupoPorDia}" title="Se calcula automáticamente según la fecha">
+      <div class="field-group">
+        <label class="field-label">Fecha<span class="req">*</span></label>
+        <input class="field-input" id="ns-fecha" type="date" value="${hoy}">
       </div>
-      <div class="field-group"><label class="field-label">Monitor</label>
-        <input class="field-input" id="ns-monitor" value="Samy Martín"></div>
-      <div class="field-group"><label class="field-label">Nº sesión</label>
-        <input class="field-input" id="ns-num" type="number" value="${nextNum}"></div>
-      <div class="field-group"><label class="field-label">Ubicación</label>
+      <div class="field-group">
+        <label class="field-label">Grupo <span style="font-size:10px;color:var(--grey-2)">(auto)</span></label>
+        <input class="field-input" id="ns-grupo" readonly
+               style="background:#f5f5f5;color:var(--grey-2)" value="${grupoPorDia}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Hora inicio</label>
+        <input class="field-input" id="ns-hora-inicio" type="time" value="17:00">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Hora fin</label>
+        <input class="field-input" id="ns-hora-fin" type="time" value="18:30">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Monitor</label>
+        <input class="field-input" id="ns-monitor" value="Samy Martín">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Nº sesión</label>
+        <input class="field-input" id="ns-num" type="number" value="${nextNum}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Lugar</label>
         <select class="field-select" id="ns-ubicacion">
-          <option>Cancha La Atalaya</option><option>Cuevas Torres</option>
+          <option>Cancha La Atalaya</option>
+          <option>Cuevas Torres</option>
         </select>
       </div>
-      <div class="field-group"><label class="field-label">Objetivo de sesión</label>
-        <input class="field-input" id="ns-objetivo" placeholder="Ej: Control y conducción"></div>
+      <div class="field-group">
+        <label class="field-label">Objetivos</label>
+        <input class="field-input" id="ns-objetivo" placeholder="Ej: Control y conducción">
+      </div>
     </div>
 
+    <!-- ── Fichas por jugador ── -->
     <div style="margin-top:1.25rem">
-      <div style="font-size:13px;font-weight:600;margin-bottom:.75rem;color:var(--black)">
+      <div style="font-size:13px;font-weight:600;margin-bottom:.75rem">
         Fichas de jugadores
         <span style="font-weight:400;font-size:11px;color:var(--grey-2);margin-left:8px">
-          Marca ✓ Asistencia · Evalúa del 1-5 · ⭐ Mejor alumno
+          ✓ Asistencia · 1-5 técnica · 1-10 valoraciones · ⭐ Mejor alumno
         </span>
       </div>
       <div id="ns-fichas-lista">
         ${alumnosFutbol.map(a => {
-          const edad = calcEdad(a.fechaNac);
+          const edad    = calcEdad(a.fechaNac);
           const edadStr = edad !== null ? `, ${edad} años` : '';
-          return `<div class="ns-ficha" data-id="${a.id}" style="border:1px solid var(--grey);border-radius:8px;margin-bottom:8px;overflow:hidden">
-            <!-- Cabecera ficha: asistencia + nombre + mejor alumno -->
+          return `<div class="ns-ficha" data-id="${a.id}"
+                       style="border:1px solid var(--grey);border-radius:8px;margin-bottom:8px;overflow:hidden">
+            <!-- Cabecera: checkbox asistencia + nombre + ⭐ mejor -->
             <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafafa;cursor:pointer"
                  onclick="toggleFichaEval('${a.id}')">
               <input type="checkbox" class="ns-asist-check" value="${a.id}"
@@ -2850,68 +2879,101 @@ function modalNuevaSesion() {
                 <div style="font-weight:600;font-size:13px">${a.nombre}</div>
                 <div style="font-size:11px;color:var(--grey-2)">${a.modalidad||'Tecnificación'}${edadStr}</div>
               </div>
-              <!-- Mejor alumno: checkbox con estrella -->
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--grey-2)"
                      onclick="event.stopPropagation()">
                 <input type="radio" name="ns-mejor" value="${a.id}" class="ns-mejor-radio"
-                       style="width:auto;accent-color:#f59e0b">
-                ⭐ Mejor
+                       style="width:auto;accent-color:#f59e0b"> ⭐ Mejor
               </label>
-              <span style="font-size:11px;color:var(--grey-2);margin-left:4px">▼</span>
+              <span style="font-size:10px;color:var(--grey-2);margin-left:4px">▼</span>
             </div>
-            <!-- Panel evaluación (oculto hasta marcar asistencia) -->
+
+            <!-- Panel evaluación (se abre al marcar asistencia) -->
             <div id="eval-${a.id}" style="display:none;padding:10px 12px;background:#fff;border-top:1px solid #f0f0f0">
-              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
-                ${['Técnica','Decisión','Compet.','Actitud','Cansancio'].map((campo, ci) => {
-                  const fieldId = ['tecnica','decision','competitividad','actitud','cansancio'][ci];
-                  const isCansancio = fieldId === 'cansancio';
+
+              <!-- Fila 1: Técnica, Decisión, Competitividad, Actitud (1-5) -->
+              <div style="font-size:10px;color:var(--grey-2);font-weight:600;margin-bottom:4px;letter-spacing:.03em">
+                EVALUACIÓN TÉCNICA (1-5)
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+                ${['Técnica','Decisión','Compet.','Actitud'].map((label, ci) => {
+                  const fid = ['tecnica','decision','competitividad','actitud'][ci];
                   return `<div style="text-align:center">
-                    <div style="font-size:10px;color:var(--grey-2);margin-bottom:3px">${campo}</div>
-                    ${isCansancio
-                      ? `<select id="ns-${fieldId}-${a.id}" style="width:100%;font-size:11px;padding:3px;border:1px solid var(--grey);border-radius:4px">
-                           <option value="Bien">Bien</option>
-                           <option value="Regular">Regular</option>
-                           <option value="Cansado">Cansado</option>
-                           <option value="Muy cansado">Muy cansado</option>
-                         </select>`
-                      : `<div style="display:flex;gap:2px;justify-content:center">
-                           ${[1,2,3,4,5].map(n=>`<button type="button" class="eval-star" data-field="${fieldId}" data-alumno="${a.id}" data-val="${n}"
-                             onclick="setEval('${a.id}','${fieldId}',${n})"
-                             style="width:20px;height:20px;border:1px solid var(--grey);border-radius:3px;background:#fff;font-size:10px;cursor:pointer;padding:0">${n}</button>`).join('')}
-                         </div>`
-                    }
+                    <div style="font-size:10px;color:var(--grey-2);margin-bottom:3px">${label}</div>
+                    <div style="display:flex;gap:2px;justify-content:center">
+                      ${botonesEval(fid, a.id, 5, 'var(--green)')}
+                    </div>
                   </div>`;
                 }).join('')}
               </div>
-              <input type="text" id="ns-notas-${a.id}" placeholder="Observaciones (opcional)"
-                     style="width:100%;padding:5px 8px;border:1px solid var(--grey);border-radius:5px;font-size:12px">
+
+              <!-- Fila 2: V.J., V.E., AE (1-10) -->
+              <div style="font-size:10px;color:var(--grey-2);font-weight:600;margin-bottom:4px;letter-spacing:.03em">
+                VALORACIONES (1-10)
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+                ${[['vj','V.J.','#1565c0'],['ve','V.E.','#6a1b9a'],['ae','AE','#e65100']].map(([fid,label,color]) =>
+                  `<div style="text-align:center">
+                    <div style="font-size:10px;color:var(--grey-2);margin-bottom:3px">${label}</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
+                      ${botonesEval(fid, a.id, 10, color)}
+                    </div>
+                  </div>`
+                ).join('')}
+              </div>
+
+              <!-- Fila 3: Cansancio -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div>
+                  <div style="font-size:10px;color:var(--grey-2);margin-bottom:3px;font-weight:600">CANSANCIO</div>
+                  <select id="ns-cansancio-${a.id}"
+                          style="width:100%;padding:4px 6px;border:1px solid var(--grey);border-radius:5px;font-size:12px">
+                    <option value="Bien">Bien</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Cansado">Cansado</option>
+                    <option value="Muy cansado">Muy cansado</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:var(--grey-2);margin-bottom:3px;font-weight:600">OBSERVACIONES</div>
+                  <input type="text" id="ns-notas-${a.id}" placeholder="Notas del jugador…"
+                         style="width:100%;padding:4px 6px;border:1px solid var(--grey);border-radius:5px;font-size:12px">
+                </div>
+              </div>
             </div>
           </div>`;
         }).join('')}
       </div>
+    </div>
+
+    <!-- ── Propuesta próxima sesión (global) ── -->
+    <div style="margin-top:1rem;padding:10px 12px;border:1px solid var(--grey);border-radius:8px;background:#fafafa">
+      <div style="font-size:11px;font-weight:600;color:var(--grey-2);margin-bottom:6px;letter-spacing:.03em">
+        PROPUESTA PRÓXIMA SESIÓN
+      </div>
+      <textarea id="ns-propuesta" rows="2" placeholder="Describe el objetivo o contenido de la próxima sesión…"
+                style="width:100%;padding:6px 8px;border:1px solid var(--grey);border-radius:5px;font-size:12px;resize:vertical"></textarea>
     </div>`,
+
     `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
      <button class="btn btn-primary" onclick="guardarSesion()">💾 Guardar sesión</button>`
   );
 
-  // Actualizar grupo automáticamente cuando cambia la fecha
+  // Actualizar grupo cuando cambia la fecha
   setTimeout(() => {
-    const fechaInput = document.getElementById('ns-fecha');
-    const grupoInput = document.getElementById('ns-grupo');
-    if (fechaInput && grupoInput) {
-      const actualizarGrupo = () => {
-        const d = new Date(fechaInput.value + 'T12:00:00');
+    const fi = document.getElementById('ns-fecha');
+    const gi = document.getElementById('ns-grupo');
+    if (fi && gi) {
+      fi.addEventListener('change', () => {
         const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-        grupoInput.value = DIAS[d.getDay()] || '';
-      };
-      fechaInput.addEventListener('change', actualizarGrupo);
+        gi.value = DIAS[new Date(fi.value + 'T12:00:00').getDay()] || '';
+      });
     }
   }, 100);
 
-  // Estado de evaluaciones en memoria
+  // Estado inicial de evaluaciones
   window._evalState = {};
   alumnosFutbol.forEach(a => {
-    window._evalState[a.id] = { tecnica:0, decision:0, competitividad:0, actitud:'Bien', cansancio:'Bien' };
+    window._evalState[a.id] = { tecnica:0, decision:0, competitividad:0, actitud:0, vj:0, ve:0, ae:0, cansancio:'Bien' };
   });
 }
 
@@ -2929,15 +2991,16 @@ window.actualizarFicha = function(id) {
 };
 
 // Guarda valor numérico de evaluación y resalta el botón seleccionado
-window.setEval = function(alumnoId, field, val) {
+window.setEval = function(alumnoId, field, val, max, color) {
   if (!window._evalState) window._evalState = {};
   if (!window._evalState[alumnoId]) window._evalState[alumnoId] = {};
   window._evalState[alumnoId][field] = val;
-  // Resaltar botón seleccionado
+  const activeColor = color || 'var(--green)';
   document.querySelectorAll(`.eval-star[data-alumno="${alumnoId}"][data-field="${field}"]`).forEach(btn => {
-    btn.style.background = parseInt(btn.dataset.val) <= val ? 'var(--green)' : '#fff';
-    btn.style.color = parseInt(btn.dataset.val) <= val ? '#fff' : '#000';
-    btn.style.borderColor = parseInt(btn.dataset.val) <= val ? 'var(--green)' : 'var(--grey)';
+    const active = parseInt(btn.dataset.val) <= val;
+    btn.style.background   = active ? activeColor : '#fff';
+    btn.style.color        = active ? '#fff' : '#333';
+    btn.style.borderColor  = active ? activeColor : 'var(--grey)';
   });
 };
 
@@ -2957,6 +3020,9 @@ async function guardarSesion() {
   const monitor      = document.getElementById('ns-monitor')?.value || 'Samy';
   const ubicacion    = document.getElementById('ns-ubicacion')?.value || '';
   const objetivo     = document.getElementById('ns-objetivo')?.value || '';
+  const horaInicio   = document.getElementById('ns-hora-inicio')?.value || '17:00';
+  const horaFin      = document.getElementById('ns-hora-fin')?.value || '18:30';
+  const propuesta    = document.getElementById('ns-propuesta')?.value || '';
 
   // ID de sesión basado en número para coincidir con Sheets
   const sesionId = 'SES' + String(numeroSesion).padStart(3,'0');
@@ -2971,15 +3037,18 @@ async function guardarSesion() {
     const alumno     = getAlumno(aid);
     const esMejor    = aid === mejorId;
     const evalState  = (window._evalState || {})[aid] || {};
-    const cansancio  = document.getElementById('ns-cansancio-' + aid)?.value || evalState.cansancio || '';
+    const cansancio  = document.getElementById('ns-cansancio-' + aid)?.value || 'Bien';
+    const notas      = document.getElementById('ns-notas-' + aid)?.value || '';
     const evaluacion = {
       tecnica:        evalState.tecnica        || 0,
       decision:       evalState.decision       || 0,
       competitividad: evalState.competitividad || 0,
       actitud:        evalState.actitud        || 0,
+      vj:             evalState.vj             || 0,   // valoración jugador 1-10
+      ve:             evalState.ve             || 0,   // valoración entrenador 1-10
+      ae:             evalState.ae             || 0,   // autoevaluación entrenador 1-10
       cansancio
     };
-    const notas = document.getElementById('ns-notas-' + aid)?.value || '';
     const puntosBase  = 10;
     const puntosMejor = esMejor ? 10 : 0;
     const puntosTotal = puntosBase + puntosMejor;
@@ -2993,28 +3062,31 @@ async function guardarSesion() {
     });
     if (alumno.camino !== undefined) alumno.camino += puntosTotal;
 
-    // Fila para Sheets — headers reales confirmados de SESIONES SM FÚTBOL:
-    // Nº | FECHA | LUGAR | GRUPO | MONITOR | HORA INICIO | HORA FIN |
-    // TIEMPO EFECTIVO | OBJETIVOS | ALUMNO | TÉCNICA | DECISIÓN |
-    // COMPETITIVIDAD | ACTITUD | MEDIA DIARIA | ↑↓ | MEJOR ALUMNO
+    // Fila para Sheets — 22 columnas reales de SESIONES SM FÚTBOL
     rows.push({
-      'Nº':               numeroSesion,              // mismo número para todos los alumnos de esta sesión
-      'FECHA':            fecha,
-      'LUGAR':            ubicacion,
-      'GRUPO':            grupo,
-      'MONITOR':          monitor,
-      'HORA INICIO':      '',                        // no disponible en app
-      'HORA FIN':         '',                        // no disponible en app
-      'TIEMPO EFECTIVO':  '',                        // calculado en Sheets
-      'OBJETIVOS':        objetivo,
-      'ALUMNO':           alumno.nombre || '',        // nombre visible, no clave
-      'TÉCNICA':          evaluacion.tecnica || '',
-      'DECISIÓN':         evaluacion.decision || '',
-      'COMPETITIVIDAD':   evaluacion.competitividad || '',
-      'ACTITUD':          evaluacion.actitud || '',
-      'MEDIA DIARIA':     '',                        // calculada en Sheets
-      '↑↓':              evaluacion.cansancio || '', // Bien/Regular/Cansado/Muy cansado
-      'MEJOR ALUMNO':     esMejor ? 'TRUE' : 'FALSE'
+      'Nº':                       numeroSesion,
+      'FECHA':                    fecha,
+      'LUGAR':                    ubicacion,
+      'GRUPO':                    grupo,
+      'MONITOR':                  monitor,
+      'HORA INICIO':              horaInicio,
+      'HORA FIN':                 horaFin,
+      'TIEMPO EFECTIVO':          '',               // calculado en Sheets
+      'OBJETIVOS':                objetivo,
+      'ALUMNO':                   alumno.nombre || '',
+      'TÉCNICA':                  evaluacion.tecnica        || '',
+      'DECISIÓN':                 evaluacion.decision       || '',
+      'COMPETITIVIDAD':           evaluacion.competitividad || '',
+      'ACTITUD':                  evaluacion.actitud        || '',
+      'MEDIA DIARIA':             '',               // calculado en Sheets
+      'FORMA':                    '',               // calculado en Sheets según media diaria
+      'CANSANCIO':                evaluacion.cansancio      || '',
+      'MEJOR ALUMNO':             esMejor ? 'TRUE' : 'FALSE',
+      'OBSERVACIONES':            notas             || '',
+      'V.J.':                     evaluacion.vj     || '',
+      'V.E.':                     evaluacion.ve     || '',
+      'AE':                       evaluacion.ae     || '',
+      'PROPUESTA PRÓXIMA SESIÓN': propuesta         || ''   // misma para todos los alumnos de la sesión
     });
   }
 
