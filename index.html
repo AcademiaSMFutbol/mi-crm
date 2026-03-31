@@ -1152,7 +1152,17 @@ function normalizarDB(raw) {
   if (raw.asistencias_extra && raw.asistencias_extra.length) {
     const MESES_IDX = ['enero','febrero','marzo','abril','mayo','junio',
                        'julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    DB.asistencias_extra = raw.asistencias_extra
+    // Deduplicar: misma fecha+actividad+alumno → quedarse con el último registro
+    const deduped = [];
+    const seen = new Set();
+    for (const a of [...raw.asistencias_extra].reverse()) {
+      const fecha = String(a.Fecha || a.FECHA || '').split('T')[0];
+      const act   = String(a.Servicio || a.ACTIVIDAD || '').trim().toUpperCase();
+      const nom   = String(a.Alumno || a.ALUMNO || '').trim().toUpperCase();
+      const key   = fecha + '|' + act + '|' + nom;
+      if (!seen.has(key)) { seen.add(key); deduped.push(a); }
+    }
+    DB.asistencias_extra = deduped
       .filter(a => a.Fecha || a.FECHA)
       .map((a, idx) => {
         const fecha = String(a.Fecha || a.FECHA || '').split('T')[0];
@@ -1164,10 +1174,11 @@ function normalizarDB(raw) {
         const nombreAlumno = String(a.Alumno || a.ALUMNO || a.NOMBRE_ALUMNO || '').trim().toUpperCase();
         const presente = a.Presente === true || String(a.Presente || a.PRESENTE || '').toUpperCase() === 'TRUE';
         // Resolver alumnoId por nombre
-        const alumnoObj = DB.alumnos.find(al => {
-          const n = (al.nombre || '').toUpperCase();
-          return n === nombreAlumno || n.startsWith(nombreAlumno.split(' ')[0]);
-        });
+        // Match estricto — solo nombre completo, nunca por primer token
+        // Evita que "VICTORIA X" resuelva igual que "VICTORIA Y"
+        const alumnoObj = DB.alumnos.find(al =>
+          (al.nombre || '').toUpperCase() === nombreAlumno
+        );
         return {
           id:           'AE_' + idx,
           fecha,
