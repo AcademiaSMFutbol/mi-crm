@@ -1528,6 +1528,20 @@ function calcEdad(fechaNac) {
 
 // Buscar siempre por string — IDs reales son números, la app los trata como string
 function getAlumno(id) { return DB.alumnos.find(a => String(a.id) === String(id)) || {}; }
+
+// Resolver alumno tanto por ID numérico como por nombre (para sesiones de Sheets)
+function getAlumnoFlex(ref) {
+  if (!ref) return {};
+  const byId = DB.alumnos.find(a => String(a.id) === String(ref));
+  if (byId) return byId;
+  const refU = String(ref).toUpperCase().trim();
+  // Match exacto por nombre completo
+  const byNombre = DB.alumnos.find(a => (a.nombre||'').toUpperCase() === refU);
+  if (byNombre) return byNombre;
+  // Match por primer nombre (para casos como "ANTONIO EZEQUIEL" → busca "ANTONIO")
+  const primerToken = refU.split(' ')[0];
+  return DB.alumnos.find(a => (a.nombre||'').toUpperCase().startsWith(primerToken)) || { nombre: ref };
+}
 function getPersona(id) { return DB.personal.find(p => String(p.id) === String(id)) || {}; }
 
 // URL de foto desde carpeta img en GitHub
@@ -1624,11 +1638,17 @@ function closeModal(e) {
 }
 
 function addTopbarBtn(label, fn, type = 'btn-primary', icon = '') {
+  const container = document.getElementById('topbar-actions');
+  if (!container) return;
+  // Evitar duplicados — si ya existe un botón con el mismo label, no añadir otro
+  const text = (icon + label).trim();
+  const exists = [...container.querySelectorAll('button')].some(b => b.textContent.trim() === text);
+  if (exists) return;
   const btn = document.createElement('button');
   btn.className = `btn ${type}`;
   btn.innerHTML = `${icon}${label}`;
   btn.onclick = fn;
-  document.getElementById('topbar-actions').appendChild(btn);
+  container.appendChild(btn);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2663,11 +2683,16 @@ function futbol() {
           <div class="card-body" style="padding:.75rem 1.25rem">
             <div style="font-size:12px;color:var(--grey-2);margin-bottom:.5rem">Objetivo: ${s.objetivo}</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">
-              ${s.alumnos.map(aid => {
-                const a = getAlumno(aid);
-                const asi = asist.find(x=>x.alumnoId===aid);
-                return `<div style="display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;background:${asi?.presente?'var(--green-bg)':'var(--red-bg)'}">
-                  <span>${asi?.presente?'✓':'✗'}</span> ${a.nombre?.split(' ')[0]||'?'}
+              ${s.alumnos.map(ref => {
+                const a   = getAlumnoFlex(ref);
+                const nombre1 = (a.nombre || String(ref)).split(' ')[0];
+                // buscar asistencia por id o por nombre
+                const asi = asist.find(x =>
+                  x.alumnoId === String(a.id) ||
+                  String(x.claveAlumno||'').toUpperCase() === String(ref).toUpperCase()
+                );
+                return `<div style="display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;background:var(--green-bg)">
+                  <span>✓</span> ${nombre1}
                 </div>`;
               }).join('')}
             </div>
