@@ -431,7 +431,7 @@ tbody tr:hover { background: #fafafa; }
   <div class="login-box">
     <div class="login-logo">
       <div class="login-logo-icon" style="padding:0;overflow:hidden;background:#000">
-        <img src="https://drive.google.com/uc?export=view&id=1cULQdBcqP7C_dCf9-j-L8rUstmjb4aNI"
+        <img src="https://academiasmfutbol.github.io/sistema/img/logo.png"
              alt="SM" style="width:100%;height:100%;object-fit:contain"
              onerror="this.style.display='none';this.parentElement.textContent='SM'">
       </div>
@@ -489,7 +489,7 @@ tbody tr:hover { background: #fafafa; }
     <div class="sidebar-header">
       <div class="brand">
         <div class="brand-icon" style="padding:0;overflow:hidden;background:#000">
-          <img src="https://academiasmfutbol.github.io/img/logo.png"
+          <img src="https://academiasmfutbol.github.io/sistema/img/logo.png"
                alt="SM" style="width:100%;height:100%;object-fit:contain"
                onerror="this.style.display='none';this.parentElement.textContent='SM'">
         </div>
@@ -773,7 +773,7 @@ function gasRequest(action, data = {}) {
 }
 
 // Logo oficial SM Academia (compartido desde Google Drive)
-const LOGO_URL = 'https://academiasmfutbol.github.io/img/logo.png';
+const LOGO_URL = 'https://academiasmfutbol.github.io/sistema/img/logo.png';
 // Fotos de jugadores y monitores — carpeta img en GitHub Pages
 // Formato: https://academiasmfutbol.github.io/img/jugadores/NOMBRE.jpg
 //          https://academiasmfutbol.github.io/img/monitores/NOMBRE.jpg
@@ -958,7 +958,14 @@ function normalizarDB(raw) {
 
   // PAGOS: clave_alumno/clave_cliente → extraer ID numérico
   if (raw.pagos && raw.pagos.length) {
-    DB.pagos = raw.pagos.map(p => {
+    DB.pagos = raw.pagos
+      // Excluir filas sin id_pago real (fórmulas vacías, filas en blanco)
+      .filter(p => {
+        const id = String(p.id_pago || '').trim();
+        const total = parseFloat(String(p.total_esperado || '0').replace(',','.')) || 0;
+        return id !== '' && id !== '0' && (total > 0 || String(p.clave_alumno||'').trim() !== '');
+      })
+      .map(p => {
       const alumnoId  = String(p.clave_alumno  || '').split('|')[0];
       const clienteId = String(p.clave_cliente || '').split('|')[0];
       return {
@@ -986,7 +993,7 @@ function normalizarDB(raw) {
         estadoPdf: p.estado_pdf || '',
         _raw: p
       };
-    });
+    });  // fin .map
   }
 
   // GASTOS — desde hoja GASTOS en BASE DATOS SM
@@ -2690,7 +2697,7 @@ function descargarFacturaPdf(fid) {
     .footer{margin-top:2rem;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:1rem}
   </style></head><body>
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:1rem">
-      <img src="https://drive.google.com/uc?export=view&id=1cULQdBcqP7C_dCf9-j-L8rUstmjb4aNI"
+      <img src="https://academiasmfutbol.github.io/sistema/img/logo.png"
            alt="SM" style="height:60px;object-fit:contain" onerror="this.style.display='none'">
       <div>
         <h1 style="margin:0;font-size:20px;color:#2e7d32">SM Academia · Factura ${fid}</h1>
