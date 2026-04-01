@@ -959,12 +959,9 @@ function normalizarDB(raw) {
   // PAGOS: clave_alumno/clave_cliente → extraer ID numérico
   if (raw.pagos && raw.pagos.length) {
     DB.pagos = raw.pagos
-      // Excluir filas sin id_pago real (fórmulas vacías, filas en blanco)
-      .filter(p => {
-        const id = String(p.id_pago || '').trim();
-        const total = parseFloat(String(p.total_esperado || '0').replace(',','.')) || 0;
-        return id !== '' && id !== '0' && (total > 0 || String(p.clave_alumno||'').trim() !== '');
-      })
+      // Guardia mínima: solo excluir filas sin id_pago
+      // El filtro fuerte lo aplica GET_PAGOS en el GAS
+      .filter(p => String(p.id_pago || '').trim() !== '')
       .map(p => {
       const alumnoId  = String(p.clave_alumno  || '').split('|')[0];
       const clienteId = String(p.clave_cliente || '').split('|')[0];
@@ -1249,44 +1246,48 @@ async function syncAll() {
   showToast('Sincronizando con Google Sheets…', 'info');
   setSyncState('syncing');
   try {
-    const res = await gasRequest('GET_ALL');
-    if (res.ok && res.data) {
-      normalizarDB(res.data);
-      renderCurrentPage();
-      const np = DB.pagos.length;
-      showToast(`Datos sincronizados ✓ · ${np} pago${np!==1?'s':''}`, 'success');
-      saveCacheLocal();
-      updateBadges();
+    // GET_ALL trae todo excepto PAGOS (que va por separado para garantizar integridad)
+    const [resAll, resPagos] = await Promise.all([
+      gasRequest('GET_ALL'),
+      gasRequest('GET_PAGOS')
+    ]);
+    if (resAll.ok && resAll.data) {
+      normalizarDB(resAll.data);
     } else {
-      throw new Error(res.error || 'Respuesta vacía del GAS');
+      throw new Error(resAll.error || 'GET_ALL falló');
     }
+    // Sobrescribir pagos con datos limpios de GET_PAGOS
+    if (resPagos.ok && Array.isArray(resPagos.pagos)) {
+      normalizarDB({ pagos: resPagos.pagos });
+    }
+    renderCurrentPage();
+    const np = DB.pagos.length;
+    showToast(`Sincronizado ✓ · ${np} pago${np!==1?'s':''}`, 'success');
+    saveCacheLocal();
+    updateBadges();
   } catch (e) {
     setSyncState('error');
     showToast('Error: ' + e.message, 'error');
   }
 }
 
-// Sincronizar solo PAGOS — llamada independiente al GAS
-// Útil cuando GET_ALL no trae todos los pagos por límite de respuesta
+// Sincronizar solo PAGOS — usa acción GET_PAGOS dedicada
+// GET_PAGOS devuelve { ok, pagos: [...filas filtradas...], total, ts }
 async function syncPagos() {
   if (!GAS_URL) { showToast('Sin URL GAS configurada', 'error'); return; }
   showToast('Actualizando pagos…', 'info');
   setSyncState('syncing');
   try {
-    const res = await gasRequest('GET_SHEET', { sheet: 'PAGOS' });
-    if (res.ok && res.rows && res.rows.length) {
-      // GET_SHEET devuelve { rows: [...filas crudas...] }
-      // Pasamos como si fuera raw.pagos directamente a normalizarDB
-      normalizarDB({ pagos: res.rows });
+    const res = await gasRequest('GET_PAGOS');
+    if (res.ok && Array.isArray(res.pagos)) {
+      // GET_PAGOS devuelve res.pagos — pasarlo como raw.pagos a normalizarDB
+      normalizarDB({ pagos: res.pagos });
       renderCurrentPage();
       saveCacheLocal();
       setSyncState('ok');
-      showToast(`${DB.pagos.length} pagos actualizados ✓`, 'success');
-    } else if (res.ok && res.rows && res.rows.length === 0) {
-      showToast('La hoja PAGOS está vacía o no se encontró', 'warning');
-      setSyncState('ok');
+      showToast(`${DB.pagos.length} pagos sincronizados ✓`, 'success');
     } else {
-      throw new Error(res.error || 'Sin datos');
+      throw new Error(res.error || 'Respuesta inválida de GET_PAGOS');
     }
   } catch(e) {
     setSyncState('error');
@@ -2635,6 +2636,7 @@ async function guardarPago() {
 function facturas() {
   const listos = DB.pagos.filter(p=>p.estadoPdf==='LISTO PARA EMITIR'&&!p.facturaId);
   addTopbarBtn('Generar pendientes', () => generarTodasFacturas(), 'btn-primary');
+  addTopbarBtn('🔄 Actualizar', () => syncPagos(), 'btn-secondary');
   const todasFacturas = [...new Set(DB.pagos.filter(p=>p.facturaId).map(p=>p.facturaId))].map(fid => {
     const pagos = DB.pagos.filter(p=>p.facturaId===fid);
     const cliente = getCliente(pagos[0]?.clienteId||'');
