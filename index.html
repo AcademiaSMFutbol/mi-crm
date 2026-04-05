@@ -495,12 +495,15 @@ tbody tr:hover { background: #fafafa; }
           <div class="brand-sub">Sistema 360°</div>
         </div>
       </div>
-      <div class="user-chip">
+      <div class="user-chip" style="display:flex;align-items:center;gap:8px">
         <div class="user-avatar" id="user-avatar-small">SM</div>
-        <div class="user-info">
+        <div class="user-info" style="flex:1;min-width:0">
           <div class="user-name" id="user-name-chip">Samy Martín</div>
           <div class="user-role" id="user-role-chip">Admin</div>
         </div>
+        <button onclick="logout()" title="Cerrar sesion"
+          style="background:none;border:none;cursor:pointer;color:#666;font-size:18px;padding:4px 6px;border-radius:4px;line-height:1;flex-shrink:0"
+          onmouseover="this.style.color='#ef5350'" onmouseout="this.style.color='#666'">&#x23CF;</button>
       </div>
     </div>
 
@@ -1045,11 +1048,13 @@ function normalizarDB(raw) {
       const centro    = String(p['CENTRO/CANCHA'] || p.CENTRO || '').trim();
       if (!personaMap[idKey]) {
         personaMap[idKey] = {
-          id:         idKey,
-          nombre:     nombre.toUpperCase(),
-          rol:        p.ROL || p.CARGO || 'Monitor',
-          email:      p.EMAIL || p['E-MAIL'] || '',
-          telefono:   String(p.TELÉFONO || p.TELEFONO || p['TELÉFONO'] || ''),
+          id:           idKey,
+          nombre:       nombre.toUpperCase(),
+          rol:          p.ROL || p.CARGO || 'Monitor',
+          email:        p.EMAIL || p['E-MAIL'] || '',
+          telefono:     String(p.TELÉFONO || p.TELEFONO || p['TELÉFONO'] || ''),
+          claveMonitor: String(p['CLAVE MONITOR'] || p.CLAVE_MONITOR || '').trim(), // ID interno
+          password:     String(p['PASSWORD'] || p.Password || '').trim(),
           certDelitos,
           certVence,
           activo,
@@ -1446,26 +1451,59 @@ function doLogin() {
   const err = document.getElementById('login-error');
   err.style.display = 'block';
   if (!role) { err.textContent = 'Selecciona un rol.'; return; }
-  const cred = CREDENTIALS[role];
-  if (!cred) { err.textContent = 'Rol no encontrado: ' + role; return; }
-  if (pass !== cred.pass) {
-    err.textContent = 'Contraseña incorrecta para ' + role + '. Intro: "' + pass + '" · Esperada: ' + cred.pass.length + ' chars';
-    return;
-  }
   err.style.display = 'none';
-  let name = cred.name;
-  if (role === 'MONITOR') {
-    const monName = document.getElementById('login-monitor-name').value;
-    name = monName;
-    const mon = DB.personal.find(p => p.nombre === monName);
-    if (mon) {
-      const dias = daysBetween(new Date(), new Date(mon.certVence));
-      if (dias < 30) showToast(`⚠️ Certificado de delitos sexuales vence en ${dias} días`, 'warning');
+  let name = '';
+
+  if (role === 'ADMIN') {
+    // Admin: contraseña fija
+    if (pass !== CREDENTIALS.ADMIN.pass) {
+      err.style.display = 'block';
+      err.textContent = 'Contraseña de administrador incorrecta.';
+      return;
     }
+    name = CREDENTIALS.ADMIN.name;
+
+  } else if (role === 'MONITOR') {
+    // Monitor: nombre del select + CLAVE MONITOR individual desde PERSONAL
+    const monName = document.getElementById('login-monitor-name').value;
+    if (!monName) { err.style.display='block'; err.textContent='Selecciona tu nombre.'; return; }
+    const mon = DB.personal.find(p => p.nombre === monName);
+    if (!mon) { err.style.display='block'; err.textContent='Monitor no encontrado. Contacta con el administrador.'; return; }
+    if (!mon.password) { err.style.display='block'; err.textContent='Este monitor no tiene contraseña asignada. Contacta con el administrador.'; return; }
+    if (pass !== mon.password) { err.style.display='block'; err.textContent='Contraseña incorrecta.'; return; }
+    name = monName;
+    if (mon.certVence) {
+      const dias = daysBetween(new Date(), new Date(mon.certVence));
+      if (dias < 30) showToast(`⚠️ Certificado de delitos vence en ${dias} días`, 'warning');
+    }
+
+  } else if (role === 'FAMILIA') {
+    // Familia: email de CLIENTES + contraseña fija familia2026
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    if (!email) { err.style.display='block'; err.textContent='Introduce tu email.'; return; }
+    const cliente = DB.clientes.find(c => (c.email||'').toLowerCase() === email);
+    if (!cliente) { err.style.display='block'; err.textContent='Email no encontrado. Verifica que usas el email registrado en el sistema.'; return; }
+    if (pass !== CREDENTIALS.FAMILIA.pass) { err.style.display='block'; err.textContent='Contraseña incorrecta.'; return; }
+    name = cliente.nombre;
+    currentUser = { role, name, email, clienteId: cliente.id, initials: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    startApp();
+    return;
+
+  } else {
+    err.style.display = 'block';
+    err.textContent = 'Rol no válido.';
+    return;
   }
   currentUser = { role, name, initials: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() };
   localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
   startApp();
+}
+
+function logout() {
+  localStorage.removeItem('sm_session');
+  // Recargar para volver al login limpio
+  location.reload();
 }
 
 function startApp() {
@@ -2572,7 +2610,8 @@ function pagos() {
     filtered = [...filtered].sort((a,b) => {
       const va = val(a), vb = val(b);
       if (typeof va === 'number') return (va - vb) * _sortDir;
-      return String(va).localeCompare(String(vb)) * _sortDir;
+      // Orden numérico natural: PAG0010 < PAG0020 (no 1,10,11,2...)
+      return String(va).localeCompare(String(vb), 'es', {numeric:true, sensitivity:'base'}) * _sortDir;
     });
     render();
   };
@@ -2752,7 +2791,7 @@ function facturas() {
       const va = col==='total' ? a[col] : (col==='cliente' ? (a.cliente.nombre||'') : a[col]);
       const vb = col==='total' ? b[col] : (col==='cliente' ? (b.cliente.nombre||'') : b[col]);
       if (typeof va === 'number') return (va-vb)*_fSortDir;
-      return String(va).localeCompare(String(vb))*_fSortDir;
+      return String(va).localeCompare(String(vb), 'es', {numeric:true, sensitivity:'base'})*_fSortDir;
     });
     tbody.innerHTML = todasF.map(f=>`<tr onclick="verFactura('${f.id}')">
       <td class="mono">${f.id}</td>
@@ -4357,6 +4396,7 @@ function informes() {
       ${[
         {icon:'📊',titulo:'Informe mensual general',desc:'KPIs, ingresos, asistencia y alumnos del mes',btn:'Generar informe',fn:'generarInformeGeneral()'},
         {icon:'📄',titulo:'Informe AMPA Extraescolares',desc:'Asistencia mensual por actividad para el AMPA',btn:'Generar PDF',fn:'generarInformeAMPA()'},
+        {icon:'📋',titulo:'Informe trimestral asesoría',desc:'Ingresos, gastos PERSONAL/SERVICIOS/SS y balance para contable',btn:'Generar PDF',fn:'modalInformeTrimestral()'},
         {icon:'🏆',titulo:'Ranking Camino SM',desc:'Puntuación acumulada de todos los alumnos',btn:'Ver ranking',fn:"navigate('futbol')"},
         {icon:'💳',titulo:'Resumen de pagos',desc:'Estado de cobros y morosidad del período',btn:'Ver pagos',fn:"navigate('pagos')"},
         {icon:'👤',titulo:'Informe individual de alumno',desc:'Asistencia, evaluaciones y evolución personal',btn:'Seleccionar alumno',fn:'modalInformeAlumno()'},
@@ -4380,6 +4420,132 @@ function informes() {
       `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
        <button class="btn btn-primary" onclick="closeModal();verAlumno(document.getElementById('inf-alumno').value)">Ver ficha</button>`);
   };
+  window.modalInformeTrimestral = () => {
+    const anyo = new Date().getFullYear();
+    openModal('Informe trimestral · Selecciona período', `
+      <div class="form-grid">
+        <div class="field-group">
+          <label class="field-label">Trimestre</label>
+          <select class="field-input" id="trim-q">
+            <option value="1">T1 · Enero – Marzo</option>
+            <option value="2">T2 · Abril – Junio</option>
+            <option value="3">T3 · Julio – Septiembre</option>
+            <option value="4">T4 · Octubre – Diciembre</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Año</label>
+          <select class="field-input" id="trim-anyo">
+            <option value="${anyo}">${anyo}</option>
+            <option value="${anyo-1}">${anyo-1}</option>
+          </select>
+        </div>
+      </div>`,
+      `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+       <button class="btn btn-primary" onclick="closeModal();generarInformeTrimestral(+document.getElementById('trim-q').value,+document.getElementById('trim-anyo').value)">📋 Generar PDF</button>`
+    );
+  };
+
+  window.generarInformeTrimestral = (q, anyo) => {
+    const MESES_POR_TRIM = {1:['enero','febrero','marzo'],2:['abril','mayo','junio'],3:['julio','agosto','septiembre'],4:['octubre','noviembre','diciembre']};
+    const LABEL_TRIM = {1:'T1 · Enero–Marzo',2:'T2 · Abril–Junio',3:'T3 · Julio–Septiembre',4:'T4 · Octubre–Diciembre'};
+    const meses = MESES_POR_TRIM[q];
+
+    // INGRESOS
+    const pagosTrim = DB.pagos.filter(p => {
+      const m=(p.mes||'').toLowerCase().trim();
+      const f=p.fecha?new Date(p.fecha).getFullYear():0;
+      return meses.includes(m)&&f===anyo&&(p.estado||'').toUpperCase()==='PAGADO';
+    });
+    const ingresosBruto = pagosTrim.reduce((s,p)=>s+p.totalRecibido,0);
+    const ingresosBase  = pagosTrim.reduce((s,p)=>s+p.base,0);
+    const igicCobrado   = pagosTrim.reduce((s,p)=>s+p.igicEur,0);
+    const porServicio   = {};
+    pagosTrim.forEach(p => {
+      const srv=p.servicio||'Sin clasificar';
+      if(!porServicio[srv])porServicio[srv]={n:0,base:0,igic:0,total:0};
+      porServicio[srv].n++;porServicio[srv].base+=p.base;porServicio[srv].igic+=p.igicEur;porServicio[srv].total+=p.totalRecibido;
+    });
+
+    // GASTOS
+    const CATS=['PERSONAL','SERVICIOS','SEGURIDAD SOCIAL','SS'];
+    const gastosTrim=(DB.gastos||[]).filter(g=>{
+      const m=(g.mes||'').toLowerCase().trim();
+      const f=g.fecha?new Date(g.fecha).getFullYear():0;
+      const cat=(g.categoria||'').toUpperCase();
+      return meses.includes(m)&&f===anyo&&CATS.some(c=>cat.includes(c));
+    });
+    const gastosPorCat={};
+    gastosTrim.forEach(g=>{
+      const cat=(g.categoria||'OTROS').toUpperCase();
+      const key=CATS.find(c=>cat.includes(c))||cat;
+      if(!gastosPorCat[key])gastosPorCat[key]={items:[],total:0};
+      gastosPorCat[key].items.push(g);
+      gastosPorCat[key].total+=parseFloat(g.importe||0);
+    });
+    const totalGastos=Object.values(gastosPorCat).reduce((s,c)=>s+c.total,0);
+    const balance=ingresosBase-totalGastos;
+
+    // Construir HTML sin template literals anidados
+    const css = '<style>body{font-family:Arial,sans-serif;margin:1.5cm 2cm;color:#000;font-size:12px}h1{font-size:17px;color:#2e7d32;margin:0}h2{font-size:13px;color:#2e7d32;margin:1.5rem 0 .4rem;border-bottom:1px solid #2e7d32;padding-bottom:3px}table{width:100%;border-collapse:collapse;margin:.5rem 0 1rem}th{background:#e8f5e9;padding:6px 8px;text-align:left;font-size:11px;text-transform:uppercase;border-bottom:2px solid #2e7d32}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.num{text-align:right}.tot{font-weight:bold;background:#f5f5f5}.kpi-row{display:flex;gap:1rem;margin-bottom:1rem}.kpi-box{flex:1;background:#f9f9f9;border:1px solid #eee;border-radius:6px;padding:.75rem;text-align:center}.kpi-label{font-size:10px;color:#888;text-transform:uppercase}.kpi-val{font-size:18px;font-weight:700;color:#2e7d32;margin-top:2px}.bal-pos{background:#e8f5e9;color:#2e7d32}.bal-neg{background:#fce4ec;color:#c62828}.bal-box{margin:1.5rem 0;padding:1rem;border-radius:6px;text-align:center}.bal-val{font-size:28px;font-weight:700;margin:.25rem 0}.footer{margin-top:2rem;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:.5rem}</style>';
+
+    // Filas de ingresos por servicio
+    let filasSrv = '';
+    Object.entries(porServicio).sort((a,b)=>b[1].total-a[1].total).forEach(([srv,d])=>{
+      filasSrv += '<tr><td>'+srv+'</td><td class="num">'+d.n+'</td><td class="num">'+fmtEur(d.base)+'</td><td class="num">'+fmtEur(d.igic)+'</td><td class="num">'+fmtEur(d.total)+'</td></tr>';
+    });
+    filasSrv += '<tr class="tot"><td>TOTAL</td><td class="num">'+pagosTrim.length+'</td><td class="num">'+fmtEur(ingresosBase)+'</td><td class="num">'+fmtEur(igicCobrado)+'</td><td class="num">'+fmtEur(ingresosBruto)+'</td></tr>';
+
+    // Tablas de gastos
+    let tablasGastos = '';
+    if(Object.keys(gastosPorCat).length){
+      Object.entries(gastosPorCat).forEach(([cat,data])=>{
+        let filas='';
+        data.items.forEach(g=>{
+          filas+='<tr><td>'+(g.fecha||'')+'</td><td>'+(g.proveedor||'')+'</td><td>'+(g.concepto||'')+'</td><td class="num">'+fmtEur(parseFloat(g.importe||0))+'</td></tr>';
+        });
+        filas+='<tr class="tot"><td colspan="3">Subtotal '+cat+'</td><td class="num">'+fmtEur(data.total)+'</td></tr>';
+        tablasGastos+='<table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Concepto</th><th class="num">Importe</th></tr></thead><tbody>'+filas+'</tbody></table>';
+      });
+    } else {
+      tablasGastos='<p style="color:#999;font-style:italic">Sin gastos en categorías PERSONAL, SERVICIOS o SEGURIDAD SOCIAL para este trimestre.</p>';
+    }
+
+    // Balance
+    const balClass = balance>=0?'bal-pos':'bal-neg';
+    const balVal   = (balance>=0?'+':'')+fmtEur(balance);
+
+    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe Trimestral '+LABEL_TRIM[q]+' '+anyo+'</title>'+css+'</head><body>'+
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:1.2rem">'+
+        '<img src="https://academiasmfutbol.github.io/sistema/img/logo.png" style="height:50px;object-fit:contain" onerror="this.style.display=\'none\'">'+
+        '<div><h1>Informe Trimestral · SM Academia</h1>'+
+          '<div style="font-size:11px;color:#666">'+LABEL_TRIM[q]+' '+anyo+' · Generado el '+new Date().toLocaleDateString('es-ES')+'</div>'+
+          '<div style="font-size:11px;color:#666">Antonio Samuel Martín Rivera · DNI 45766626F · academiasmfutbol.com</div></div></div>'+
+      '<div class="kpi-row">'+
+        '<div class="kpi-box"><div class="kpi-label">Ingresos brutos</div><div class="kpi-val">'+fmtEur(ingresosBruto)+'</div></div>'+
+        '<div class="kpi-box"><div class="kpi-label">Base imponible</div><div class="kpi-val">'+fmtEur(ingresosBase)+'</div></div>'+
+        '<div class="kpi-box"><div class="kpi-label">IGIC repercutido</div><div class="kpi-val">'+fmtEur(igicCobrado)+'</div></div>'+
+        '<div class="kpi-box"><div class="kpi-label">Gastos deducibles</div><div class="kpi-val" style="color:#c62828">'+fmtEur(totalGastos)+'</div></div>'+
+      '</div>'+
+      '<h2>Ingresos por servicio</h2>'+
+      '<table><thead><tr><th>Servicio</th><th class="num">Cobros</th><th class="num">Base imponible</th><th class="num">IGIC</th><th class="num">Total cobrado</th></tr></thead><tbody>'+filasSrv+'</tbody></table>'+
+      '<h2>Gastos deducibles · Personal · Servicios · Seguridad Social</h2>'+tablasGastos+
+      '<h2>Balance trimestral</h2>'+
+      '<div class="bal-box '+balClass+'">'+
+        '<div style="font-size:13px;font-weight:600">Resultado del trimestre</div>'+
+        '<div class="bal-val">'+balVal+'</div>'+
+        '<div style="font-size:11px;opacity:.8">Base imponible '+fmtEur(ingresosBase)+' − Gastos deducibles '+fmtEur(totalGastos)+'</div>'+
+      '</div>'+
+      '<div class="footer">Generado por SM Academia · Uso interno · Para asesoría fiscal · Datos de Google Sheets BASE DATOS SM</div>'+
+    '</body></html>';
+
+    const w=window.open('','_blank');
+    w.document.write(html);
+    w.document.close();
+    w.print();
+  };
+
+
   window.generarInformeGeneral = () => {
     const mes = 'Marzo 2026';
     const ps = DB.pagos;
