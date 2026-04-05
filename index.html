@@ -1569,7 +1569,18 @@ function startApp() {
     setInterval(updateSyncTime, 60000);
     return;
   }
-  // Cargar datos
+  // ── FAMILIA ──
+  if (isFamilia) {
+    // Ocultar todo el sidebar excepto el logout
+    document.querySelectorAll('.nav-section').forEach(s => s.style.display = 'none');
+    if (!loadCacheLocal()) loadDemoData();
+    if (GAS_URL) syncAll().then(() => portalFamilia());
+    else portalFamilia();
+    setInterval(updateSyncTime, 60000);
+    return;
+  }
+
+  // ── ADMIN ──
   if (!loadCacheLocal()) loadDemoData();
   if (GAS_URL) syncAll(); else { loadDemoData(); showConfigIfNeeded(); }
   navigate('dashboard');
@@ -1616,6 +1627,7 @@ const PAGE_META = {
   incidencias:    { title: 'Incidencias', sub: 'Registro de golpes, conflictos y emergencias' },
   informes:       { title: 'Informes', sub: 'Generación de PDFs y exportaciones' },
   configuracion:  { title: 'Configuración', sub: 'Sistema y conexión Google Sheets' },
+  familia:        { title: 'Mi portal', sub: 'Seguimiento de tus alumnos' },
 };
 
 function navigate(page) {
@@ -1629,9 +1641,10 @@ function navigate(page) {
       page = permitidas[0];
     }
   }
-  // FAMILIA: solo dashboard y alumnos (solo lectura)
+  // FAMILIA: siempre su portal propio
   if (currentUser && currentUser.role === 'FAMILIA') {
-    if (!['dashboard','alumnos'].includes(page)) page = 'dashboard';
+    portalFamilia();
+    return;
   }
   currentPage = page;
   document.querySelectorAll('.nav-item').forEach(el => {
@@ -1645,6 +1658,7 @@ function navigate(page) {
 }
 
 function renderCurrentPage() {
+  if (currentUser && currentUser.role === 'FAMILIA') { portalFamilia(); return; }
   const pages = {
     dashboard, clientes, alumnos, inscripciones, pagos, facturas,
     futbol, extraescolares, personal, incidencias, informes, configuracion
@@ -4388,6 +4402,203 @@ async function resolverIncidencia(id) {
 /* ═══════════════════════════════════════════════════════════
    PAGE: INFORMES
 ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   PORTAL FAMILIA — Vista privada por clienteId
+═══════════════════════════════════════════════════════════ */
+function portalFamilia() {
+  const clienteId  = currentUser.clienteId || '';
+  const cliente    = getCliente(clienteId);
+  const pc         = document.getElementById('page-content');
+
+  // Alumnos vinculados a esta familia
+  const misAlumnos = DB.alumnos.filter(a => String(a.clienteId) === String(clienteId));
+  if (!misAlumnos.length) {
+    pc.innerHTML = `
+      <div class="card" style="text-align:center;padding:3rem">
+        <div style="font-size:40px;margin-bottom:1rem">👋</div>
+        <div style="font-size:16px;font-weight:600">Bienvenido, ${cliente.nombre||currentUser.name}</div>
+        <div style="font-size:13px;color:var(--grey-2);margin-top:.5rem">
+          No hemos encontrado alumnos vinculados a tu cuenta.<br>
+          Contacta con SM Academia si crees que es un error.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ── Pagos de esta familia ──
+  const misPagos = DB.pagos
+    .filter(p => String(p.clienteId) === String(clienteId))
+    .sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
+
+  // ── Facturas de esta familia ──
+  const misFacturasIds = [...new Set(misPagos.filter(p=>p.facturaId).map(p=>p.facturaId))];
+
+  // ── Construir tarjeta por alumno ──
+  const tarjetasAlumnos = misAlumnos.map(al => {
+    const esFutbol = (al.actividad||'').toUpperCase().includes('TECNIF');
+
+    // Inscripciones activas
+    const inscrs = DB.inscripciones.filter(i =>
+      String(i.alumnoId) === String(al.id) && i.estado === 'ACTIVA'
+    );
+
+    // Sesiones de fútbol con asistencia
+    const asistFutbol = DB.asistencias.filter(a => String(a.alumnoId) === String(al.id));
+    const sesPresentes = asistFutbol.filter(a => a.presente).length;
+    const sesTotal     = asistFutbol.length;
+    const sesPct       = sesTotal ? Math.round(sesPresentes/sesTotal*100) : 0;
+
+    // Últimas 3 evaluaciones
+    const evals = asistFutbol.filter(a => a.evaluacion).slice(-3).reverse();
+    const avgEval = field => {
+      const vals = evals.map(e => e.evaluacion[field]||0).filter(v => v > 0);
+      return vals.length ? (vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(1) : '—';
+    };
+
+    // Asistencia extraescolares
+    const asistExtra = (DB.asistencias_extra||[]).filter(a => {
+      const xNom = (a.nombreAlumno||'').toUpperCase();
+      const aName = (al.nombre||'').toUpperCase();
+      return xNom === aName || String(a.alumnoId) === String(al.id);
+    });
+    const extraPresentes = asistExtra.filter(a => a.presente).length;
+    const extraTotal     = asistExtra.length;
+
+    // Puntos Camino SM
+    const camino = al.camino || 0;
+    const caminoBadge = camino > 0 ? `<span class="camino-badge" style="font-size:14px">⭐ ${camino} pts</span>` : '';
+
+    // Bloque evaluaciones fútbol
+    const evalBlock = evals.length ? `
+      <div style="margin-top:.75rem">
+        <div style="font-size:11px;font-weight:600;color:var(--grey-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Últimas evaluaciones</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center">
+          ${[['Técnica',avgEval('tecnica')],['Decisión',avgEval('decision')],['Compet.',avgEval('competitividad')],['Actitud',avgEval('actitud')]].map(([l,v])=>`
+            <div style="background:var(--green-bg);border-radius:8px;padding:.5rem">
+              <div style="font-size:10px;color:var(--grey-2)">${l}</div>
+              <div style="font-size:18px;font-weight:700;color:var(--green)">${v}</div>
+              <div style="font-size:9px;color:var(--grey-2)">/ 5</div>
+            </div>`).join('')}
+        </div>
+      </div>` : '';
+
+    // Bloque asistencia fútbol
+    const futbolBlock = esFutbol && sesTotal > 0 ? `
+      <div style="margin-top:.75rem;padding:.75rem;background:#f9f9f9;border-radius:8px">
+        <div style="font-size:11px;font-weight:600;color:var(--grey-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Asistencia SM Fútbol</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="progress-bar" style="flex:1;height:8px">
+            <div class="progress-fill ${sesPct<60?'danger':sesPct<80?'warn':''}" style="width:${sesPct}%"></div>
+          </div>
+          <span style="font-size:13px;font-weight:600;min-width:60px">${sesPresentes}/${sesTotal} · ${sesPct}%</span>
+        </div>
+        ${evalBlock}
+      </div>` : '';
+
+    // Bloque asistencia extraescolares
+    const extraBlock = extraTotal > 0 ? `
+      <div style="margin-top:.75rem;padding:.75rem;background:#f9f9f9;border-radius:8px">
+        <div style="font-size:11px;font-weight:600;color:var(--grey-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Asistencia Extraescolares</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="progress-bar" style="flex:1;height:8px">
+            <div class="progress-fill ${Math.round(extraPresentes/extraTotal*100)<60?'danger':Math.round(extraPresentes/extraTotal*100)<80?'warn':''}" style="width:${Math.round(extraPresentes/extraTotal*100)}%"></div>
+          </div>
+          <span style="font-size:13px;font-weight:600;min-width:60px">${extraPresentes}/${extraTotal} · ${Math.round(extraPresentes/extraTotal*100)}%</span>
+        </div>
+      </div>` : '';
+
+    // Actividades inscritas
+    const actBlock = inscrs.length ? `
+      <div style="margin-top:.75rem">
+        <div style="font-size:11px;font-weight:600;color:var(--grey-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">Actividades</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${inscrs.map(i => `<span class="badge badge-green">${i.servicio}</span>`).join('')}
+        </div>
+      </div>` : '';
+
+    return `
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header">
+          <div class="avatar" style="width:44px;height:44px;font-size:18px">${getInitials(al.nombre)}</div>
+          <div>
+            <div class="card-title" style="font-size:16px">${al.nombre}</div>
+            <div style="font-size:12px;color:var(--grey-2)">${al.curso||''} · ${al.grupo||''}</div>
+          </div>
+          <div style="margin-left:auto">${caminoBadge}</div>
+        </div>
+        <div class="card-body">
+          ${actBlock}
+          ${futbolBlock}
+          ${extraBlock}
+          ${!futbolBlock && !extraBlock ? '<div style="font-size:13px;color:var(--grey-2)">Sin datos de asistencia registrados aún.</div>' : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // ── Últimos pagos ──
+  const ultPagos = misPagos.slice(0,8);
+  const pagosBlock = ultPagos.length ? `
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header"><span>💳</span><div class="card-title">Últimos pagos</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Alumno</th><th>Servicio</th><th>Mes</th><th>Total</th><th>Estado</th></tr></thead>
+        <tbody>
+          ${ultPagos.map(p => {
+            const a = getAlumno(p.alumnoId);
+            return `<tr>
+              <td style="font-size:13px">${a.nombre||'—'}</td>
+              <td style="font-size:12px;color:var(--grey-2)">${p.servicio||'—'}</td>
+              <td><span class="badge badge-grey">${fmtMonth(p.mes)}</span></td>
+              <td><strong>${fmtEur(p.totalEsperado)}</strong></td>
+              <td>${estadoPagoBadge(p.estado)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>` : '';
+
+  // ── Facturas descargables ──
+  const facturasBlock = misFacturasIds.length ? `
+    <div class="card">
+      <div class="card-header"><span>🧾</span><div class="card-title">Mis facturas</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Factura</th><th>Fecha</th><th>Total</th><th></th></tr></thead>
+        <tbody>
+          ${misFacturasIds.map(fid => {
+            const ps = DB.pagos.filter(p => p.facturaId === fid);
+            const fecha = ps[0]?.fecha||'';
+            const total = ps.reduce((s,p)=>s+p.totalEsperado,0);
+            return `<tr>
+              <td class="mono">${fid}</td>
+              <td style="font-size:12px">${fmtDate(fecha)}</td>
+              <td><strong>${fmtEur(total)}</strong></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="descargarFacturaPdf('${fid}')">⬇ PDF</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>` : '';
+
+  // ── Render final ──
+  document.getElementById('page-title').textContent = 'Mi portal';
+  document.getElementById('page-sub').textContent   = 'Seguimiento de ' + (misAlumnos.length > 1 ? 'tus alumnos' : misAlumnos[0].nombre||'tu alumno');
+  pc.innerHTML = `
+    <div style="margin-bottom:1rem;padding:.75rem 1rem;background:var(--green-bg);border-radius:8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">👋</span>
+      <div>
+        <div style="font-weight:600">Hola, ${(cliente.nombre||currentUser.name).split(' ')[0]}</div>
+        <div style="font-size:12px;color:var(--grey-2)">${misAlumnos.length} alumno${misAlumnos.length!==1?'s':''} registrado${misAlumnos.length!==1?'s':''}</div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-sm" style="margin-left:auto">⏏ Salir</button>
+    </div>
+    ${tarjetasAlumnos}
+    ${pagosBlock}
+    ${facturasBlock}`;
+
+  // Ocultar topbar-actions heredadas
+  document.getElementById('topbar-actions').innerHTML = '';
+}
+
 function informes() {
   document.getElementById('page-content').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
