@@ -4499,15 +4499,15 @@ function portalFamilia() {
     const alNombre  = (al.nombre || '').toUpperCase().trim();
     const alNTokens = alNombre.split(' ');
     const asistFutbol = DB.asistencias.filter(a => {
-      // Match por ID numérico (resuelto en normalización)
+      // 1. Match por ID numérico
       if (String(a.alumnoId) === String(al.id)) return true;
-      // Fallback: alumnoId es el nombre en texto (no se resolvió en norm)
-      const aid = String(a.alumnoId || a.claveAlumno || '').toUpperCase().trim();
-      if (!aid || aid === String(al.id)) return false;
-      if (aid === alNombre) return true;
-      // Todos los tokens del nombre en sesión deben ser tokens exactos del alumno
-      const aidTokens = aid.split(' ').filter(t => t.length >= 3);
-      return aidTokens.length > 0 && aidTokens.every(t => alNTokens.includes(t));
+      // 2. claveAlumno = nombre exacto tal como viene de SESIONES
+      //    comparar contra nombre completo del alumno token a token
+      const clave = String(a.claveAlumno || '').toUpperCase().trim();
+      if (!clave) return false;
+      if (clave === alNombre) return true;
+      const claveTokens = clave.split(' ').filter(t => t.length >= 3);
+      return claveTokens.length > 0 && claveTokens.every(t => alNTokens.includes(t));
     });
     const sesPresentes = asistFutbol.filter(a => a.presente).length;
     const sesTotal     = asistFutbol.length;
@@ -4779,11 +4779,11 @@ function informeTecnificacionPdf(alumnoId) {
   const alNTokPdf = alNomPdf.split(' ');
   const asists   = DB.asistencias.filter(a => {
     if (String(a.alumnoId) === String(alumnoId)) return true;
-    const aid = String(a.alumnoId || a.claveAlumno || '').toUpperCase().trim();
-    if (!aid || aid === String(alumnoId)) return false;
-    if (aid === alNomPdf) return true;
-    const aidToks = aid.split(' ').filter(t => t.length >= 3);
-    return aidToks.length > 0 && aidToks.every(t => alNTokPdf.includes(t));
+    const clave = String(a.claveAlumno || '').toUpperCase().trim();
+    if (!clave) return false;
+    if (clave === alNomPdf) return true;
+    const claveToks = clave.split(' ').filter(t => t.length >= 3);
+    return claveToks.length > 0 && claveToks.every(t => alNTokPdf.includes(t));
   });
   const conEval  = asists.filter(a => a.evaluacion);
   const sesiones = DB.sesiones.filter(s => s.alumnos.some(n =>
