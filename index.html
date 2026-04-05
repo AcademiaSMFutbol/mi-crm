@@ -1137,10 +1137,18 @@ function normalizarDB(raw) {
         const alumnoNombre = String(s.ALUMNO || '').trim();
 
         // Resolver alumnoId buscando en DB.alumnos por nombre
-        const primerToken  = alumnoNombre.split(' ')[0].toUpperCase();
-        const alumnoObj    = DB.alumnos.find(al => {
+        // El nombre en SESIONES puede ser solo un token (EZEQUIEL en lugar de ANTONIO EZEQUIEL...)
+        const alumnoNombreU = alumnoNombre.toUpperCase();
+        const tokens = alumnoNombreU.split(' ').filter(t => t.length >= 4);
+        const alumnoObj = DB.alumnos.find(al => {
           const n = (al.nombre || '').toUpperCase();
-          return n === alumnoNombre.toUpperCase() || n.startsWith(primerToken);
+          // Match exacto
+          if (n === alumnoNombreU) return true;
+          // Nombre completo contiene el nombre de sesión (ej: n contiene "EZEQUIEL")
+          if (alumnoNombreU.length >= 4 && n.includes(alumnoNombreU)) return true;
+          // Algún token del nombre de sesión está en el nombre completo
+          if (tokens.some(t => n.includes(t))) return true;
+          return false;
         });
         const alumnoId = alumnoObj ? String(alumnoObj.id) : alumnoNombre;
 
@@ -4485,8 +4493,22 @@ function portalFamilia() {
       String(i.alumnoId) === String(al.id) && i.estado === 'ACTIVA'
     );
 
-    // Sesiones de fútbol con asistencia
-    const asistFutbol = DB.asistencias.filter(a => String(a.alumnoId) === String(al.id));
+    // Sesiones de fútbol — match por ID numérico O por nombre
+    // (alumnoId puede quedar como nombre si el match falló en normalización)
+    const alNombre = (al.nombre || '').toUpperCase();
+    const alTokens = alNombre.split(' ').filter(t => t.length >= 4); // tokens significativos
+    const asistFutbol = DB.asistencias.filter(a => {
+      if (String(a.alumnoId) === String(al.id)) return true;
+      // Match por nombre completo o nombre en SESIONES (puede ser solo el primer nombre)
+      const aid = String(a.alumnoId || a.claveAlumno || '').toUpperCase();
+      if (aid === alNombre) return true;
+      // Match si el nombre en sesiones es un token significativo del nombre completo
+      // Ej: "EZEQUIEL" matchea "ANTONIO EZEQUIEL MARTÍN PÉREZ"
+      if (aid.length >= 4 && alNombre.includes(aid)) return true;
+      // Match inverso: nombre completo contiene el token de la asistencia
+      if (alTokens.some(t => aid.includes(t) || t === aid)) return true;
+      return false;
+    });
     const sesPresentes = asistFutbol.filter(a => a.presente).length;
     const sesTotal     = asistFutbol.length;
     const sesPct       = sesTotal ? Math.round(sesPresentes/sesTotal*100) : 0;
@@ -4752,7 +4774,17 @@ function informeTecnificacionPdf(alumnoId) {
   const al       = DB.alumnos.find(a => String(a.id) === String(alumnoId));
   if (!al) return;
   const cliente  = getCliente(currentUser.clienteId || '');
-  const asists   = DB.asistencias.filter(a => String(a.alumnoId) === String(alumnoId));
+  const alObj    = DB.alumnos.find(a => String(a.id) === String(alumnoId));
+  const alNomPdf = (alObj?.nombre || '').toUpperCase();
+  const alTokPdf = alNomPdf.split(' ').filter(t => t.length >= 4);
+  const asists   = DB.asistencias.filter(a => {
+    if (String(a.alumnoId) === String(alumnoId)) return true;
+    const aid = String(a.alumnoId || a.claveAlumno || '').toUpperCase();
+    if (aid === alNomPdf) return true;
+    if (aid.length >= 4 && alNomPdf.includes(aid)) return true;
+    if (alTokPdf.some(t => aid.includes(t) || t === aid)) return true;
+    return false;
+  });
   const conEval  = asists.filter(a => a.evaluacion);
   const sesiones = DB.sesiones.filter(s => s.alumnos.some(n =>
     n.toUpperCase() === (al.nombre||'').toUpperCase() ||
