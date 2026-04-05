@@ -450,11 +450,10 @@ tbody tr:hover { background: #fafafa; }
       </select>
     </div>
     <div class="login-field" id="login-monitor-wrap" style="display:none">
-      <label>Tu nombre</label>
-      <select id="login-monitor-name">
-        <option value="">— Selecciona tu nombre —</option>
-        <!-- Relleno dinámicamente desde hoja PERSONAL al iniciar -->
-      </select>
+      <label>Usuario</label>
+      <input type="text" id="login-monitor-name" class="login-field-input"
+             placeholder="Tu usuario (columna USERNAME en PERSONAL)"
+             style="width:100%;padding:.75rem 1rem;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;box-sizing:border-box">
       <div style="font-size:11px;color:#888;margin-top:4px">Si no ves tu nombre, contacta con el administrador.</div>
     </div>
     <div class="login-field" id="login-familia-wrap" style="display:none">
@@ -1054,6 +1053,7 @@ function normalizarDB(raw) {
           email:        p.EMAIL || p['E-MAIL'] || '',
           telefono:     String(p.TELÉFONO || p.TELEFONO || p['TELÉFONO'] || ''),
           claveMonitor: String(p['CLAVE MONITOR'] || p.CLAVE_MONITOR || '').trim(), // ID interno
+          username:     String(p['USERNAME'] || p.USERNAME || '').trim().toLowerCase(),
           password:     String(p['PASSWORD'] || p.Password || '').trim(),
           certDelitos,
           certVence,
@@ -1428,45 +1428,14 @@ document.getElementById('login-role').addEventListener('change', function() {
 });
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-// Puebla el select de monitores desde DB.personal
-// Se llama tras syncAll, loadCacheLocal y loadDemoData
-function poblarSelectMonitores() {
-  const monSelect = document.getElementById('login-monitor-name');
-  if (!monSelect) return;
-  // Solo NOMBRE — columna NOMBRE en hoja PERSONAL
-  const EXCLUIR = ['ANTONIO SAMUEL', 'SAMY', 'SAMUEL'];
-  const monitores = DB.personal
-    .filter(p => {
-      const n = (p.nombre || '').toUpperCase();
-      // Activo y no es el director
-      return !EXCLUIR.some(x => n.startsWith(x));
-    })
-    .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
-
-  monSelect.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
-  monitores.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.nombre;
-    // Mostrar solo primeros dos tokens (ESTHER MARRERO en lugar de ESTHER MARRERO DÍAZ)
-    opt.textContent = (p.nombre||'').split(' ').slice(0,2).join(' ');
-    monSelect.appendChild(opt);
-  });
-  // Feedback si no hay monitores cargados aún
-  if (monitores.length === 0) {
-    const opt = document.createElement('option');
-    opt.disabled = true;
-    opt.textContent = 'Cargando datos…';
-    monSelect.appendChild(opt);
-  }
-}
+// poblarSelectMonitores: obsoleta — login usa input de texto con USERNAME
 
 function doLogin() {
   const role = document.getElementById('login-role').value;
   const pass = document.getElementById('login-pass').value;
   const err = document.getElementById('login-error');
-  err.style.display = 'block';
-  if (!role) { err.textContent = 'Selecciona un rol.'; return; }
   err.style.display = 'none';
+  if (!role) { err.style.display='block'; err.textContent = 'Selecciona un rol.'; return; }
   let name = '';
 
   if (role === 'ADMIN') {
@@ -1479,26 +1448,36 @@ function doLogin() {
     name = CREDENTIALS.ADMIN.name;
 
   } else if (role === 'MONITOR') {
-    // Monitor: nombre del select + CLAVE MONITOR individual desde PERSONAL
-    const monName = document.getElementById('login-monitor-name').value;
-    if (!monName) { err.style.display='block'; err.textContent='Selecciona tu nombre.'; return; }
-    const mon = DB.personal.find(p => p.nombre === monName);
-    if (!mon) { err.style.display='block'; err.textContent='Monitor no encontrado. Contacta con el administrador.'; return; }
-    if (!mon.password) { err.style.display='block'; err.textContent='Este monitor no tiene contraseña asignada. Contacta con el administrador.'; return; }
+    // Monitor: USERNAME (columna USERNAME en PERSONAL) + PASSWORD
+    const usernameInput = (document.getElementById('login-monitor-name').value || '').trim().toLowerCase();
+    if (!usernameInput) { err.style.display='block'; err.textContent='Introduce tu usuario.'; return; }
+    const mon = DB.personal.find(p => p.username === usernameInput || p.nombre.toLowerCase().startsWith(usernameInput));
+    if (!mon) { err.style.display='block'; err.textContent='Usuario no encontrado. Verifica tu nombre de usuario.'; return; }
+    if (!mon.password) { err.style.display='block'; err.textContent='Sin contraseña asignada. Contacta con el administrador.'; return; }
     if (pass !== mon.password) { err.style.display='block'; err.textContent='Contraseña incorrecta.'; return; }
-    name = monName;
+    name = mon.nombre;
     if (mon.certVence) {
       const dias = daysBetween(new Date(), new Date(mon.certVence));
       if (dias < 30) showToast(`⚠️ Certificado de delitos vence en ${dias} días`, 'warning');
     }
 
   } else if (role === 'FAMILIA') {
-    // Familia: email de CLIENTES + contraseña fija familia2026
+    // Familia: email de hoja CLIENTES + contraseña fija
     const email = document.getElementById('login-email').value.trim().toLowerCase();
     if (!email) { err.style.display='block'; err.textContent='Introduce tu email.'; return; }
-    const cliente = DB.clientes.find(c => (c.email||'').toLowerCase() === email);
-    if (!cliente) { err.style.display='block'; err.textContent='Email no encontrado. Verifica que usas el email registrado en el sistema.'; return; }
     if (pass !== CREDENTIALS.FAMILIA.pass) { err.style.display='block'; err.textContent='Contraseña incorrecta.'; return; }
+    // Verificar que los clientes están cargados
+    if (!DB.clientes.length) {
+      err.style.display='block';
+      err.textContent='Datos no cargados aún. Espera unos segundos y vuelve a intentarlo.';
+      return;
+    }
+    const cliente = DB.clientes.find(c => (c.email||'').toLowerCase() === email);
+    if (!cliente) {
+      err.style.display='block';
+      err.textContent='Email no encontrado. Verifica que el email coincide con el registrado en el sistema.';
+      return;
+    }
     name = cliente.nombre;
     currentUser = { role, name, email, clienteId: cliente.id, initials: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() };
     localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
