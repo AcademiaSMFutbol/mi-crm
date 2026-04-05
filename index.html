@@ -452,11 +452,8 @@ tbody tr:hover { background: #fafafa; }
     <div class="login-field" id="login-monitor-wrap" style="display:none">
       <label>Tu nombre</label>
       <select id="login-monitor-name">
-        <option value="">— Selecciona —</option>
-        <!-- Se rellena dinámicamente con DB.personal al cargar -->
-        <option value="SAMANTHA HERNÁNDEZ SUÁREZ">Samantha Hernández</option>
-        <option value="NADIA BETANCOR MORALES">Nadia Betancor</option>
-        <option value="ANTONIO SAMUEL MARTÍN RIVERA">Samy Martín (Director)</option>
+        <option value="">— Selecciona tu nombre —</option>
+        <!-- Relleno dinámicamente desde hoja PERSONAL al iniciar -->
       </select>
       <div style="font-size:11px;color:#888;margin-top:4px">Si no ves tu nombre, contacta con el administrador.</div>
     </div>
@@ -1069,6 +1066,25 @@ function normalizarDB(raw) {
       }
     });
     DB.personal = Object.values(personaMap);
+    // Poblar select de monitores en login (excluye al director)
+    const EXCLUIR_ADMIN = ['ANTONIO SAMUEL', 'SAMY', 'SAMUEL'];
+    const monSelect = document.getElementById('login-monitor-name');
+    if (monSelect) {
+      monSelect.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
+      DB.personal
+        .filter(p => {
+          const n = (p.nombre || '').toUpperCase();
+          return p.activo && !EXCLUIR_ADMIN.some(x => n.startsWith(x));
+        })
+        .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''))
+        .forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.nombre;
+          const primerosNombres = (p.nombre||'').split(' ').slice(0,2).join(' ');
+          opt.textContent = primerosNombres;
+          monSelect.appendChild(opt);
+        });
+    }
   }
 
   // SESIONES SM Fútbol — desde hoja SESIONES (estructura real de Sheets)
@@ -1082,42 +1098,46 @@ function normalizarDB(raw) {
   // No hay ID único de sesión — usamos FECHA+GRUPO como clave sintética.
   // ═════════════════════════════════════════════════════════════════
   if (raw.sesiones && raw.sesiones.length) {
-    // Paso 1: construir sesiones únicas agrupando por FECHA+GRUPO
+    // Paso 1: agrupar por Nº de sesión (clave única real)
+    // Un mismo día puede tener varias sesiones con Nº distintos
     const sesMap = {};
     raw.sesiones.forEach(s => {
-      const fechaRaw = String(s.FECHA || '').split('T')[0];  // quitar hora ISO
+      const fechaRaw = String(s.FECHA || '').split('T')[0];
+      const num      = String(s['Nº'] || '').trim();
       const grupo    = String(s.GRUPO || '').trim();
-      if (!fechaRaw) return;
-      const sesId = fechaRaw + '__' + grupo;
+      if (!fechaRaw || !num) return;
+      const sesId = 'SES_' + num;  // Nº sesión como clave única
       if (!sesMap[sesId]) {
         sesMap[sesId] = {
           id:        sesId,
+          numero:    parseInt(num) || 0,
           fecha:     fechaRaw,
           grupo:     grupo,
           monitor:   String(s.MONITOR   || '').trim(),
-          numero:    parseInt(s['Nº'])  || 0,
           ubicacion: String(s.LUGAR     || '').trim(),
           objetivo:  String(s.OBJETIVOS || '').trim(),
-          alumnos:   []
+          horaInicio:String(s['HORA INICIO'] || '').trim(),
+          horaFin:   String(s['HORA FIN']    || '').trim(),
+          alumnos:   [],
+          _rawFirst: s
         };
       }
-      // Acumular nombre de alumno en esta sesión
       const alumnoNombre = String(s.ALUMNO || '').trim();
       if (alumnoNombre && !sesMap[sesId].alumnos.includes(alumnoNombre)) {
         sesMap[sesId].alumnos.push(alumnoNombre);
       }
     });
     DB.sesiones = Object.values(sesMap)
-      .sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+      .sort((a,b) => a.numero - b.numero);
 
-    // Paso 2: construir asistencias desde las mismas filas
-    // (cada fila de SESIONES SM FÚTBOL ya es una asistencia individual)
+    // Paso 2: asistencias — una por fila, sesionId = SES_Nº
     DB.asistencias = raw.sesiones
       .filter(s => s.ALUMNO && s.FECHA)
       .map((s, idx) => {
         const fechaRaw     = String(s.FECHA || '').split('T')[0];
         const grupo        = String(s.GRUPO || '').trim();
-        const sesionId     = fechaRaw + '__' + grupo;
+        const num          = String(s['Nº'] || '').trim();
+        const sesionId     = num ? 'SES_' + num : fechaRaw + '__' + grupo;
         const alumnoNombre = String(s.ALUMNO || '').trim();
 
         // Resolver alumnoId buscando en DB.alumnos por nombre
@@ -2509,7 +2529,17 @@ function pagos() {
     </div>
     <div class="card">
       <div class="table-wrap"><table>
-        <thead><tr><th>ID</th><th>Alumno</th><th>Mes</th><th>Fecha</th><th>Total</th><th>Método</th><th>Estado</th><th>Factura</th><th></th></tr></thead>
+        <thead><tr>
+          <th onclick="sortPagos('id')" style="cursor:pointer;user-select:none">ID <span id="sort-id">↕</span></th>
+          <th onclick="sortPagos('alumno')" style="cursor:pointer;user-select:none">Alumno <span id="sort-alumno">↕</span></th>
+          <th onclick="sortPagos('mes')" style="cursor:pointer;user-select:none">Mes <span id="sort-mes">↕</span></th>
+          <th onclick="sortPagos('fecha')" style="cursor:pointer;user-select:none">Fecha <span id="sort-fecha">↓</span></th>
+          <th onclick="sortPagos('total')" style="cursor:pointer;user-select:none">Total <span id="sort-total">↕</span></th>
+          <th>Método</th>
+          <th onclick="sortPagos('estado')" style="cursor:pointer;user-select:none">Estado <span id="sort-estado">↕</span></th>
+          <th onclick="sortPagos('factura')" style="cursor:pointer;user-select:none">Factura <span id="sort-factura">↕</span></th>
+          <th></th>
+        </tr></thead>
         <tbody id="pagos-table"></tbody>
       </table></div>
     </div>`;
@@ -2518,6 +2548,34 @@ function pagos() {
   window.filtrarPagosQ = (q) => { filtered = sortDesc(DB.pagos.filter(p => { const a=getAlumno(p.alumnoId); return a.nombre&&a.nombre.toLowerCase().includes(q.toLowerCase()); })); render(); };
   window.filtrarPagosMes = (v) => { filtered = sortDesc(v ? DB.pagos.filter(p=>p.mes===v) : [...DB.pagos]); render(); };
   window.filtrarPagosEstado = (v) => { filtered = sortDesc(v ? DB.pagos.filter(p=>p.estado===v) : [...DB.pagos]); render(); };
+
+  // Sort por columna — toggle asc/desc al hacer click en header
+  let _sortCol = 'fecha', _sortDir = -1; // -1 = desc, 1 = asc
+  const SORT_ICONS = { '-1': '↓', '1': '↑', '0': '↕' };
+  window.sortPagos = (col) => {
+    if (_sortCol === col) { _sortDir *= -1; } else { _sortCol = col; _sortDir = 1; }
+    // Actualizar iconos
+    ['id','alumno','mes','fecha','total','estado','factura'].forEach(c => {
+      const el = document.getElementById('sort-' + c);
+      if (el) el.textContent = c === _sortCol ? SORT_ICONS[String(_sortDir)] : '↕';
+    });
+    const val = p => {
+      if (col === 'id')      return p.id || '';
+      if (col === 'alumno')  return (getAlumno(p.alumnoId).nombre || '');
+      if (col === 'mes')     { const M=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']; return M.indexOf((p.mes||'').toLowerCase()); }
+      if (col === 'fecha')   return p.fecha || '';
+      if (col === 'total')   return p.totalEsperado || 0;
+      if (col === 'estado')  return p.estado || '';
+      if (col === 'factura') return p.facturaId || '';
+      return '';
+    };
+    filtered = [...filtered].sort((a,b) => {
+      const va = val(a), vb = val(b);
+      if (typeof va === 'number') return (va - vb) * _sortDir;
+      return String(va).localeCompare(String(vb)) * _sortDir;
+    });
+    render();
+  };
 }
 
 function verPago(id) {
@@ -2652,7 +2710,14 @@ function facturas() {
     <div class="card">
       <div class="card-header"><span>🧾</span><div class="card-title">Archivo de facturas</div></div>
       <div class="table-wrap"><table>
-        <thead><tr><th>ID Factura</th><th>Cliente</th><th>Fecha</th><th>Pagos incluidos</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+        <thead id="fact-thead"><tr>
+          <th onclick="sortFacturas('id')" style="cursor:pointer;user-select:none">ID Factura <span id="fsort-id">↓</span></th>
+          <th onclick="sortFacturas('cliente')" style="cursor:pointer;user-select:none">Cliente <span id="fsort-cliente">↕</span></th>
+          <th onclick="sortFacturas('fecha')" style="cursor:pointer;user-select:none">Fecha <span id="fsort-fecha">↕</span></th>
+          <th>Pagos</th>
+          <th onclick="sortFacturas('total')" style="cursor:pointer;user-select:none">Total <span id="fsort-total">↕</span></th>
+          <th>Estado</th><th></th>
+        </tr></thead>
         <tbody>
           ${todasFacturas.map(f=>`<tr onclick="verFactura('${f.id}')">
             <td class="mono">${f.id}</td>
@@ -2666,6 +2731,39 @@ function facturas() {
         </tbody>
       </table></div>
     </div>`;
+
+  let _fSortCol = 'id', _fSortDir = -1;
+  const FSORT_ICONS = { '-1': '↓', '1': '↑' };
+  window.sortFacturas = (col) => {
+    if (_fSortCol === col) { _fSortDir *= -1; } else { _fSortCol = col; _fSortDir = 1; }
+    ['id','cliente','fecha','total'].forEach(c => {
+      const el = document.getElementById('fsort-' + c);
+      if (el) el.textContent = c === _fSortCol ? FSORT_ICONS[String(_fSortDir)] : '↕';
+    });
+    const factRows = document.querySelectorAll('#fact-thead ~ tbody tr, .fact-table-body tr');
+    // Re-renderizar la tabla de facturas
+    const tbody = document.querySelector('#fact-thead').closest('table').querySelector('tbody');
+    if (!tbody) return;
+    const todasF = [...new Set(DB.pagos.filter(p=>p.facturaId).map(p=>p.facturaId))].map(fid => {
+      const ps = DB.pagos.filter(p=>p.facturaId===fid);
+      const cl = getCliente(ps[0]?.clienteId||'');
+      return { id: fid, pagos: ps, cliente: cl, fecha: ps[0]?.fecha||'', total: ps.reduce((s,p)=>s+p.totalEsperado,0) };
+    }).sort((a,b) => {
+      const va = col==='total' ? a[col] : (col==='cliente' ? (a.cliente.nombre||'') : a[col]);
+      const vb = col==='total' ? b[col] : (col==='cliente' ? (b.cliente.nombre||'') : b[col]);
+      if (typeof va === 'number') return (va-vb)*_fSortDir;
+      return String(va).localeCompare(String(vb))*_fSortDir;
+    });
+    tbody.innerHTML = todasF.map(f=>`<tr onclick="verFactura('${f.id}')">
+      <td class="mono">${f.id}</td>
+      <td>${f.cliente.nombre||'—'}</td>
+      <td style="font-size:12px">${fmtDate(f.fecha)}</td>
+      <td><span class="badge badge-grey">${f.pagos.length} pago(s)</span></td>
+      <td><strong>${fmtEur(f.total)}</strong></td>
+      <td><span class="badge badge-green">Emitida</span></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();descargarFacturaPdf('${f.id}')">PDF</button></td>
+    </tr>`).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🧾</div><div class="empty-title">Sin facturas</div></div></td></tr>';
+  };
 }
 
 function generarTodasFacturas() {
@@ -2748,6 +2846,16 @@ function futbol() {
   // Solo ADMIN puede crear sesiones con todos los datos; MONITOR solo hace pase de lista de hoy
   if (isMonitor) {
     addTopbarBtn('📋 Pase de lista hoy', () => modalPaseListaMonitor(), 'btn-primary');
+    // Monitor: mostrar solo panel de pase de lista de hoy, sin historial
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('page-content').innerHTML = `
+      <div class="card" style="text-align:center;padding:2rem">
+        <div style="font-size:40px;margin-bottom:.5rem">⚽</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:.25rem">Pase de lista · ${fmtDate(hoy)}</div>
+        <div style="font-size:13px;color:var(--grey-2);margin-bottom:1.5rem">Solo puedes registrar la asistencia del día de hoy</div>
+        <button class="btn btn-primary" onclick="modalPaseListaMonitor()">📋 Registrar asistencia de hoy</button>
+      </div>`;
+    return;
   } else {
     addTopbarBtn('+ Nueva sesión', () => modalNuevaSesion(), 'btn-primary');
   }
@@ -2909,7 +3017,86 @@ function verSesion(id) {
         </div>`:''}
       </div>`;
     }).join('')}
-  `, `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>`);
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+     ${currentUser.role==='ADMIN'?`<button class="btn btn-primary" onclick="closeModal();editarSesion('${id}')">✏️ Editar sesión</button>`:''}
+  `);
+}
+
+// Editar sesión existente — escribe UPDATE en Sheets
+function editarSesion(id) {
+  const s = DB.sesiones.find(x=>x.id===id); if (!s) return;
+  openModal(`Editar Sesión #${s.numero}`, `
+    <div class="form-grid">
+      <div class="field-group">
+        <label class="field-label">Fecha</label>
+        <input class="field-input" id="es-fecha" type="date" value="${s.fecha}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Grupo</label>
+        <input class="field-input" id="es-grupo" value="${s.grupo}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Lugar</label>
+        <input class="field-input" id="es-lugar" value="${s.ubicacion}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Monitor</label>
+        <input class="field-input" id="es-monitor" value="${s.monitor}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Hora inicio</label>
+        <input class="field-input" id="es-hinicio" type="time" value="${s.horaInicio||'17:00'}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Hora fin</label>
+        <input class="field-input" id="es-hfin" type="time" value="${s.horaFin||'18:30'}">
+      </div>
+    </div>
+    <div class="field-group" style="margin-top:.75rem">
+      <label class="field-label">Objetivos</label>
+      <textarea class="field-input" id="es-objetivo" rows="2" style="resize:vertical">${s.objetivo}</textarea>
+    </div>
+    <div style="margin-top:.75rem;padding:.75rem;background:var(--green-bg);border-radius:6px;font-size:12px;color:var(--grey-2)">
+      ⚠️ Los cambios se escriben en Google Sheets en todas las filas del Nº ${s.numero}
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarEdicionSesion('${id}')">💾 Guardar cambios</button>`
+  );
+}
+
+async function guardarEdicionSesion(id) {
+  const s = DB.sesiones.find(x=>x.id===id); if (!s) return;
+  const fecha    = document.getElementById('es-fecha').value;
+  const grupo    = document.getElementById('es-grupo').value;
+  const lugar    = document.getElementById('es-lugar').value;
+  const monitor  = document.getElementById('es-monitor').value;
+  const hInicio  = document.getElementById('es-hinicio').value;
+  const hFin     = document.getElementById('es-hfin').value;
+  const objetivo = document.getElementById('es-objetivo').value;
+  closeModal();
+  showToast('Guardando cambios en Sheets…', 'info');
+  // Actualizar en DB local
+  s.fecha = fecha; s.grupo = grupo; s.ubicacion = lugar;
+  s.monitor = monitor; s.horaInicio = hInicio; s.horaFin = hFin;
+  s.objetivo = objetivo;
+  // UPDATE en Sheets — busca por Nº sesión
+  const rowData = {
+    'FECHA': fecha, 'GRUPO': grupo, 'LUGAR': lugar,
+    'MONITOR': monitor, 'HORA INICIO': hInicio, 'HORA FIN': hFin,
+    'OBJETIVOS': objetivo
+  };
+  try {
+    const res = await gasRequest('UPDATE', { sheet: 'SESIONES', id: s.numero, row: JSON.stringify(rowData) });
+    if (res.ok) {
+      showToast('Sesión #' + s.numero + ' actualizada ✓', 'success');
+      saveCacheLocal();
+      futbol();
+    } else {
+      showToast('Error al guardar: ' + (res.error||''), 'error');
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
 }
 
 function modalNuevaSesion() {
@@ -3657,37 +3844,6 @@ async function confirmarPaseListaMonitor(actividad, fecha) {
 }
 
 // Modal pase de lista para MONITOR de Tecnificación
-function modalPaseListaMonitor() {
-  const hoy = new Date().toISOString().split('T')[0];
-  const idsTecni = new Set(
-    DB.inscripciones
-      .filter(i => i.estado === 'ACTIVA' && String(i.servicio||'').toUpperCase().includes('TECNIFICACIÓN'))
-      .map(i => String(i.alumnoId))
-  );
-  const alumnos = DB.alumnos.filter(a => {
-    const activo = a.activo === true || String(a.activo||'').toUpperCase() === 'SÍ';
-    return activo && (idsTecni.has(String(a.id)) || a.actividad === 'TECNIFICACIÓN');
-  }).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
-
-  openModal('📋 Pase de lista · Tecnificación', `
-    <div style="font-size:12px;color:var(--grey-2);margin-bottom:1rem">${hoy} · ${alumnos.length} alumnos</div>
-    <div style="max-height:380px;overflow-y:auto">
-      ${alumnos.map(a => `
-        <label style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;cursor:pointer">
-          <input type="checkbox" class="pase-check" value="${a.id}"
-                 style="width:20px;height:20px;accent-color:var(--green);cursor:pointer">
-          <div class="avatar avatar-sm" style="min-width:32px">${getInitials(a.nombre)}</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${a.nombre}</div>
-            <div style="font-size:11px;color:var(--grey-2)">${a.grupo||'—'}</div>
-          </div>
-        </label>`).join('')}
-    </div>`,
-    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-     <button class="btn btn-primary" onclick="confirmarPaseListaMonitor('TECNIFICACIÓN','${hoy}')">✅ Confirmar asistencia</button>`
-  );
-}
-
 /* ═══════════════════════════════════════════════════════════
    MONITOR — Pase de lista diario (filtrado por su actividad)
 ═══════════════════════════════════════════════════════════ */
