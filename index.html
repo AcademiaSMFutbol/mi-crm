@@ -469,6 +469,12 @@ tbody tr:hover { background: #fafafa; }
       <span id="login-loading-txt">⏳ Cargando datos del sistema…</span>
     </div>
     <button class="btn-login" id="btn-login" onclick="doLogin()">Entrar al sistema</button>
+    <!-- Botón primer acceso: solo visible si no hay contraseña admin configurada -->
+    <button id="btn-primer-acceso" onclick="modalPrimerAcceso()"
+      style="display:none;width:100%;margin-top:.5rem;padding:.6rem;background:#e8f5e9;border:1px solid #a5d6a7;
+             border-radius:8px;color:#2e7d32;font-size:12px;font-weight:600;cursor:pointer">
+      🔑 Configurar contraseña (primer acceso)
+    </button>
     <div style="margin-top:1rem;font-size:11px;color:#444;text-align:center">
       Sistema vinculado a Google Sheets · BASE DATOS SM
     </div>
@@ -506,6 +512,9 @@ tbody tr:hover { background: #fafafa; }
         <button onclick="logout()" title="Cerrar sesion"
           style="background:none;border:none;cursor:pointer;color:#666;font-size:18px;padding:4px 6px;border-radius:4px;line-height:1;flex-shrink:0"
           onmouseover="this.style.color='#ef5350'" onmouseout="this.style.color='#666'">&#x23CF;</button>
+        <button onclick="modalCambiarPassword()" title="Cambiar contraseña"
+          style="background:none;border:none;cursor:pointer;color:#666;font-size:16px;padding:4px 6px;border-radius:4px;line-height:1;flex-shrink:0"
+          onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='#666'">🔑</button>
       </div>
     </div>
 
@@ -678,10 +687,38 @@ function limpiarSesionEmergencia() {
   setTimeout(() => location.reload(), 800);
 }
 
+// Credenciales — NO hardcodeadas en código
+// Admin: se guarda en localStorage (configurable desde Configuración)
+// Monitor: viene de columna PASSWORD en hoja PERSONAL (Google Sheets)
+// Familia: viene de columna PASSWORD en hoja CLIENTES (Google Sheets) o pass compartida
+const PASS_KEY = 'sm_passwords'; // localStorage key para passwords configurables
+
+function getAdminPass() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PASS_KEY) || '{}');
+    return stored.admin || '';   // vacío → login fallará hasta que Admin configure su pass
+  } catch(e) { return ''; }
+}
+function getFamiliaPass() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PASS_KEY) || '{}');
+    return stored.familia || ''; // vacío → login fallará hasta que Admin configure pass familias
+  } catch(e) { return ''; }
+}
+function setPassword(role, newPass) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PASS_KEY) || '{}');
+    stored[role] = newPass;
+    localStorage.setItem(PASS_KEY, JSON.stringify(stored));
+    return true;
+  } catch(e) { return false; }
+}
+
+// Objeto legacy para compatibilidad — NO contiene passes reales
 const CREDENTIALS = {
-  'ADMIN': { pass: 'sm2026admin', name: 'Samy Martín', role: 'ADMIN', initials: 'SM' },
-  'MONITOR': { pass: 'monitor2026', name: 'Monitor', role: 'MONITOR', initials: 'MO' },
-  'FAMILIA': { pass: 'familia2026', name: 'Familia', role: 'FAMILIA', initials: 'FA' }
+  'ADMIN':   { name: 'Samy Martín', role: 'ADMIN',   initials: 'SM' },
+  'MONITOR': { name: 'Monitor',     role: 'MONITOR',  initials: 'MO' },
+  'FAMILIA': { name: 'Familia',     role: 'FAMILIA',  initials: 'FA' }
 };
 
 /* ═══════════════════════════════════════════════════════════
@@ -1470,8 +1507,14 @@ function doLogin() {
   let name = '';
 
   if (role === 'ADMIN') {
-    // Admin: contraseña fija
-    if (pass !== CREDENTIALS.ADMIN.pass) {
+    const adminPass = getAdminPass();
+    if (!adminPass) {
+      err.style.display = 'block';
+      err.innerHTML = 'Primera vez: establece tu contraseña desde el botón <strong>🔑 Configurar contraseña</strong> de abajo.';
+      document.getElementById('btn-primer-acceso')?.style.setProperty('display','inline-flex');
+      return;
+    }
+    if (pass !== adminPass) {
       err.style.display = 'block';
       err.textContent = 'Contraseña de administrador incorrecta.';
       return;
@@ -1493,11 +1536,15 @@ function doLogin() {
     }
 
   } else if (role === 'FAMILIA') {
-    // Familia: email de hoja CLIENTES + contraseña fija
+    const familiaPass = getFamiliaPass();
+    if (!familiaPass) {
+      err.style.display = 'block';
+      err.textContent = 'Acceso familiar no configurado aún. Contacta con SM Academia.';
+      return;
+    }
     const email = document.getElementById('login-email').value.trim().toLowerCase();
     if (!email) { err.style.display='block'; err.textContent='Introduce tu email.'; return; }
-    if (pass !== CREDENTIALS.FAMILIA.pass) { err.style.display='block'; err.textContent='Contraseña incorrecta.'; return; }
-    // Verificar que los clientes están cargados
+    if (pass !== familiaPass) { err.style.display='block'; err.textContent='Contraseña incorrecta.'; return; }
     if (!DB.clientes.length) {
       err.style.display='block';
       err.textContent='Datos no cargados aún. Espera unos segundos y vuelve a intentarlo.';
@@ -1510,7 +1557,7 @@ function doLogin() {
       return;
     }
     name = cliente.nombre;
-    currentUser = { role, name, email, clienteId: cliente.id, initials: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() };
+    currentUser = { role, name, email, clienteId: cliente.id, initials: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(), ts: Date.now() };
     localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
     startApp();
     return;
@@ -1520,9 +1567,120 @@ function doLogin() {
     err.textContent = 'Rol no válido.';
     return;
   }
-  currentUser = { role, name, initials: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() };
+  currentUser = { role, name, initials: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(), ts: Date.now() };
   localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
   startApp();
+}
+
+// Primer acceso: configurar contraseña sin estar logueado
+function modalPrimerAcceso() {
+  const body = `
+    <div style="padding:.5rem 0;font-size:13px;color:#555;margin-bottom:1rem">
+      Establece las contraseñas antes de acceder al sistema por primera vez.<br>
+      <strong>Guárdalas en un lugar seguro.</strong>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Contraseña Admin <span style="color:#c62828">*</span></label>
+      <input type="password" class="field-input" id="pa-admin" placeholder="Mínimo 8 caracteres">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Confirmar contraseña Admin <span style="color:#c62828">*</span></label>
+      <input type="password" class="field-input" id="pa-admin2" placeholder="Repite la contraseña">
+    </div>
+    <hr style="margin:1rem 0;border:none;border-top:1px solid #eee">
+    <div class="field-group">
+      <label class="field-label">Contraseña compartida Familias <span style="color:#c62828">*</span></label>
+      <input type="password" class="field-input" id="pa-familia" placeholder="Contraseña que usarán todas las familias">
+    </div>`;
+  openModal('🔑 Primer acceso — Configurar contraseñas', body,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="guardarPrimerAcceso()">Guardar y acceder</button>`);
+}
+
+function guardarPrimerAcceso() {
+  const admin   = document.getElementById('pa-admin')?.value || '';
+  const admin2  = document.getElementById('pa-admin2')?.value || '';
+  const familia = document.getElementById('pa-familia')?.value || '';
+  if (admin.length < 8)  { showToast('Contraseña admin: mínimo 8 caracteres', 'error'); return; }
+  if (admin !== admin2)  { showToast('Las contraseñas no coinciden', 'error'); return; }
+  if (familia.length < 6){ showToast('Contraseña familias: mínimo 6 caracteres', 'error'); return; }
+  setPassword('admin', admin);
+  setPassword('familia', familia);
+  document.getElementById('btn-primer-acceso').style.display = 'none';
+  closeModal();
+  showToast('✅ Contraseñas configuradas. Ya puedes entrar.', 'success');
+}
+
+function modalCambiarPassword() {
+  const role = currentUser.role;
+  let campos = '';
+
+  if (role === 'ADMIN') {
+    campos = `
+      <div class="field-group">
+        <label class="field-label">Contraseña actual</label>
+        <input type="password" class="field-input" id="cp-actual" placeholder="Contraseña actual">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Nueva contraseña Admin</label>
+        <input type="password" class="field-input" id="cp-nueva" placeholder="Mínimo 8 caracteres">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Confirmar nueva contraseña</label>
+        <input type="password" class="field-input" id="cp-confirm" placeholder="Repite la contraseña">
+      </div>
+      <hr style="margin:1rem 0;border:none;border-top:1px solid #eee">
+      <div style="font-size:12px;font-weight:600;color:var(--grey-2);margin-bottom:.5rem">CONTRASEÑA COMPARTIDA FAMILIAS</div>
+      <div class="field-group">
+        <label class="field-label">Nueva contraseña para todas las familias</label>
+        <input type="password" class="field-input" id="cp-familia" placeholder="Dejar vacío para no cambiar">
+      </div>
+      <div style="font-size:11px;color:var(--grey-2);margin-top:.25rem">Esta contraseña la usan todas las familias para entrar al sistema.</div>`;
+  } else if (role === 'MONITOR') {
+    campos = `
+      <div style="padding:1rem;background:var(--green-bg);border-radius:8px;font-size:13px">
+        <div style="font-weight:600;margin-bottom:.25rem">¿Cómo cambiar tu contraseña?</div>
+        <div>Tu contraseña está en la columna <strong>PASSWORD</strong> de la hoja PERSONAL en Google Sheets.</div>
+        <div style="margin-top:.5rem;font-size:12px;color:var(--grey-2)">Contacta con el administrador para actualizarla.</div>
+      </div>`;
+  } else {
+    campos = `
+      <div style="padding:1rem;background:var(--green-bg);border-radius:8px;font-size:13px">
+        <div style="font-weight:600;margin-bottom:.25rem">Contraseña de acceso</div>
+        <div>La contraseña de acceso para familias la gestiona el administrador de SM Academia.</div>
+        <div style="margin-top:.5rem;font-size:12px;color:var(--grey-2)">Contacta con SM Academia si necesitas cambiarla.</div>
+      </div>`;
+  }
+
+  const btnConfirmar = role === 'ADMIN'
+    ? `<button class="btn btn-primary" onclick="confirmarCambioPassword()">💾 Guardar cambios</button>`
+    : '';
+
+  openModal('🔑 Cambiar contraseña', campos,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>${btnConfirmar}`);
+}
+
+function confirmarCambioPassword() {
+  const actual  = document.getElementById('cp-actual')?.value || '';
+  const nueva   = document.getElementById('cp-nueva')?.value || '';
+  const confirm = document.getElementById('cp-confirm')?.value || '';
+  const familia = document.getElementById('cp-familia')?.value || '';
+
+  if (actual !== getAdminPass()) {
+    showToast('Contraseña actual incorrecta', 'error'); return;
+  }
+  if (nueva && nueva.length < 8) {
+    showToast('La nueva contraseña debe tener al menos 8 caracteres', 'error'); return;
+  }
+  if (nueva && nueva !== confirm) {
+    showToast('Las contraseñas no coinciden', 'error'); return;
+  }
+  let cambios = 0;
+  if (nueva) { setPassword('admin', nueva); cambios++; }
+  if (familia) { setPassword('familia', familia); cambios++; }
+  closeModal();
+  if (cambios > 0) showToast(`${cambios} contraseña(s) actualizada(s) ✓`, 'success');
+  else showToast('Sin cambios', 'info');
 }
 
 function logout() {
@@ -2871,51 +3029,90 @@ function generarTodasFacturas() {
     count++;
   });
   saveCacheLocal();
-  showToast(`${count} factura(s) generada(s) ✓`, 'success');
+  // NOTA: En producción, escribir ID_FACTURA y ESTADO_PDF en hoja PAGOS
+  // via writeToSheet para que persistan en Sheets sin depender de caché
+  showToast(count + ' factura(s) generada(s) ✓ — Recuerda actualizar PAGOS en Sheets', 'success');
   facturas();
 }
 
-function descargarFacturaPdf(fid) {
+// Calcula SHA-256 de un string (para VeriFactu)
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// Genera huella VeriFactu: NIF|Serie|Número|Fecha|Importe|HashAnterior
+// ⚠️  Para producción completa VeriFactu (obligatorio 2027):
+//     el hash debe guardarse en Sheets y enviarse a AEAT vía API.
+//     Esta implementación genera el hash SHA-256 encadenado correctamente
+//     pero el registro en AEAT requiere integración adicional con su API.
+async function huellaVerifactu(fid, total, fecha) {
+  const NIF_EMISOR = '45766626F';
+  const anyo = new Date(fecha).getFullYear() || new Date().getFullYear();
+  const SERIE = 'SM' + String(anyo).slice(-2); // SM26, SM27...
+  const num = fid.replace(/SM-\d{2}-/, '').replace(/SM-/, '');
+  // Hash anterior — cadena de facturas (se pierde si se borra localStorage)
+  const hashKey = 'sm_last_hash_' + anyo;
+  const hashAnterior = localStorage.getItem(hashKey) || '0'.repeat(64);
+  const cadena = [NIF_EMISOR, SERIE, num, fecha, total.toFixed(2), hashAnterior].join('|');
+  const hash = await sha256(cadena);
+  localStorage.setItem(hashKey, hash);
+  return { hash, cadena, num, SERIE, NIF_EMISOR, hashAnterior };
+}
+
+async function descargarFacturaPdf(fid) {
   const ps = DB.pagos.filter(p=>p.facturaId===fid);
   const c = getCliente(ps[0]?.clienteId||'');
-  // Generar PDF simple (producción: jsPDF + html2canvas + hash SHA-256 para VeriFactu)
+  // Hash VeriFactu real (SHA-256 encadenado)
+  const total = ps.reduce((s,p)=>s+p.totalEsperado,0);
+  const fecha = ps[0]?.fecha || new Date().toISOString().split('T')[0];
+  const vf = await huellaVerifactu(fid, total, fecha);
+
+  const filas = ps.map(p => {
+    const a = getAlumno(p.alumnoId);
+    const base    = Math.round(parseFloat(p.base||0)*100)/100;
+    const igicPct = Math.round(parseFloat(p.igicPct||0));
+    const igicEur = Math.round(parseFloat(p.igicEur||0)*100)/100;
+    return '<tr><td>' + (a.nombre||'—') + '</td><td>' + p.servicio + '</td><td>' +
+      fmtMonth(p.mes) + '</td><td>' + fmtEur(base) + '</td><td>' +
+      igicPct + '% = ' + fmtEur(igicEur) + '</td><td>' + fmtEur(p.totalEsperado) + '</td></tr>';
+  }).join('');
+
+  const html = '<!DOCTYPE html><html><head><title>Factura ' + fid + '</title><style>' +
+    'body{font-family:Arial,sans-serif;margin:2cm;color:#000}' +
+    'h1{font-size:20px;color:#2e7d32;margin:0}' +
+    'table{width:100%;border-collapse:collapse;margin:1rem 0}' +
+    'th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}' +
+    'th{background:#f5f5f5;font-size:12px;text-transform:uppercase}' +
+    '.total-row td{font-weight:bold;font-size:16px;border-top:2px solid #2e7d32}' +
+    '.vf{margin-top:1.5rem;padding:.75rem;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;font-size:10px;font-family:monospace;word-break:break-all}' +
+    '.footer{margin-top:1rem;font-size:10px;color:#888;border-top:1px solid #eee;padding-top:.75rem}' +
+    '</style></head><body>' +
+    '<div style="display:flex;align-items:center;gap:14px;margin-bottom:1rem">' +
+      '<img src="https://academiasmfutbol.github.io/sistema/img/logo.png" style="height:55px;object-fit:contain" onerror="this.style.display=\'none\'">' +
+      '<div><h1>SM Academia · Factura ' + fid + '</h1><div style="font-size:11px;color:#666">academiasmfutbol.com</div></div>' +
+    '</div>' +
+    '<p style="font-size:12px;color:#666;margin:.25rem 0">Antonio Samuel Martín Rivera · NIF 45766626F<br>' +
+    'Calle Teobaldo Power, 15 · Las Palmas de Gran Canaria · academiasmfutbol@outlook.es</p>' +
+    '<hr style="border:none;border-top:2px solid #2e7d32;margin:.75rem 0">' +
+    '<p><strong>Cliente:</strong> ' + (c.nombre||'—') + '<br><strong>Fecha:</strong> ' + fmtDate(fecha) + '</p>' +
+    '<table><thead><tr><th>Alumno</th><th>Servicio</th><th>Mes</th><th>Base imp.</th><th>IGIC</th><th>Total</th></tr></thead>' +
+    '<tbody>' + filas +
+    '<tr class="total-row"><td colspan="5">TOTAL FACTURA</td><td>' + fmtEur(total) + '</td></tr>' +
+    '</tbody></table>' +
+    '<div class="vf">' +
+      '<strong>VeriFactu · Huella SHA-256</strong><br>' +
+      'Emisor: ' + vf.NIF_EMISOR + ' · Serie: ' + vf.SERIE + ' · Nº: ' + vf.num + '<br>' +
+      'Hash: ' + vf.hash +
+    '</div>' +
+    '<div class="footer">Factura emitida con sistema VeriFactu · IGIC según normativa canaria · ' +
+    'RGPD/LOPDGDD · ' + new Date().toLocaleDateString('es-ES') + '</div>' +
+    '</body></html>';
+
   const w = window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Factura ${fid}</title><style>
-    body{font-family:Arial,sans-serif;margin:2cm;color:#000}
-    h1{font-size:22px;color:#2e7d32}h2{font-size:14px;font-weight:normal;color:#666}
-    table{width:100%;border-collapse:collapse;margin:1rem 0}
-    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
-    th{background:#f5f5f5;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
-    .total-row td{font-weight:bold;font-size:16px;border-top:2px solid #2e7d32;padding-top:12px}
-    .footer{margin-top:2rem;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:1rem}
-  </style></head><body>
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:1rem">
-      <img src="https://academiasmfutbol.github.io/sistema/img/logo.png"
-           alt="SM" style="height:60px;object-fit:contain" onerror="this.style.display='none'">
-      <div>
-        <h1 style="margin:0;font-size:20px;color:#2e7d32">SM Academia · Factura ${fid}</h1>
-        <div style="font-size:12px;color:#666">academiasmfutbol.com</div>
-      </div>
-    </div>
-    <h2>Antonio Samuel Martín Rivera · DNI 45766626F<br>
-    Calle Teobaldo Power, 15, Las Palmas de Gran Canaria<br>
-    academiasmfutbol@outlook.es</h2>
-    <hr style="border:none;border-top:2px solid #2e7d32;margin:1rem 0">
-    <p><strong>Cliente:</strong> ${c.nombre||'—'}<br>
-    <strong>Fecha:</strong> ${fmtDate(ps[0]?.fecha)}</p>
-    <table>
-      <thead><tr><th>Alumno</th><th>Servicio</th><th>Mes</th><th>Base</th><th>IGIC</th><th>Total</th></tr></thead>
-      <tbody>
-        ${ps.map(p=>{const a=getAlumno(p.alumnoId);const igicPct=Math.round(parseFloat(p.igicPct||0));const base=Math.round(parseFloat(p.base||0)*100)/100;const igicEur=Math.round(parseFloat(p.igicEur||0)*100)/100;return`<tr><td>${a.nombre||'—'}</td><td>${p.servicio}</td><td>${fmtMonth(p.mes)}</td><td>${fmtEur(base)}</td><td>${igicPct}% = ${fmtEur(igicEur)}</td><td>${fmtEur(p.totalEsperado)}</td></tr>`;}).join('')}
-        <tr class="total-row"><td colspan="5">TOTAL FACTURA</td><td>${fmtEur(ps.reduce((s,p)=>s+p.totalEsperado,0))}</td></tr>
-      </tbody>
-    </table>
-    <div class="footer">
-      Factura emitida conforme a VeriFactu · IGIC según normativa canaria ·
-      Responsable del tratamiento de datos: Antonio Samuel Martín Rivera · RGPD / LOPDGDD
-    </div>
-  </body></html>`);
-  w.document.close(); w.print();
+  w.document.write(html);
+  w.document.close();
+  w.print();
 }
 
 function generarFacturaPago(pid) { navigate('facturas'); }
@@ -5169,9 +5366,9 @@ function configuracion() {
       <div class="card">
         <div class="card-header"><span>🔐</span><div class="card-title">Claves de acceso</div></div>
         <div class="card-body" style="font-size:13px;line-height:2">
-          <div><strong>Admin:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">sm2026admin</code></div>
-          <div><strong>Monitor:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">monitor2026</code></div>
-          <div><strong>Familia:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">familia2026</code></div>
+          <div><strong>Admin:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">Configurable desde esta sección</code></div>
+          <div><strong>Monitor:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">Columna PASSWORD en hoja PERSONAL</code></div>
+          <div><strong>Familia:</strong> <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px">Configurable desde esta sección</code></div>
           <p style="font-size:11px;color:var(--grey-2);margin-top:.75rem">En producción: reemplazar por Firebase Auth con magic links y 2FA.</p>
         </div>
       </div>
@@ -5232,21 +5429,25 @@ function configuracion() {
 /* ═══════════════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════════════ */
+const SESSION_TTL = 8 * 60 * 60 * 1000; // 8 horas en ms
+
 async function initApp() {
-  // 1. Restaurar sesión activa
+  // 1. Restaurar sesión activa (si no ha expirado)
   const savedSession = localStorage.getItem(SESSION_KEY);
   if (savedSession) {
     try {
       const parsed = JSON.parse(savedSession);
-      if (parsed && parsed.role && CREDENTIALS[parsed.role]) {
+      const age = Date.now() - (parsed.ts || 0);
+      if (parsed && parsed.role && CREDENTIALS[parsed.role] && age < SESSION_TTL) {
         currentUser = parsed;
-        // Cargar datos y arrancar
         loadCacheLocal();
         if (GAS_URL) await syncAll();
         startApp();
         return;
       } else {
+        // Sesión expirada o inválida — limpiar
         localStorage.removeItem(SESSION_KEY);
+        if (age >= SESSION_TTL) showToast && showToast('Sesión expirada. Vuelve a entrar.', 'info');
       }
     } catch(e) { localStorage.removeItem(SESSION_KEY); }
   }
@@ -5269,6 +5470,10 @@ async function initApp() {
       console.warn('[SM] syncAll falló en init:', e.message);
     }
   }
+
+  // Mostrar botón primer acceso si no hay contraseña configurada
+  const btnPA = document.getElementById('btn-primer-acceso');
+  if (btnPA && !getAdminPass()) btnPA.style.display = 'inline-flex';
 
   // Datos listos — habilitar login
   if (loadingEl) {
