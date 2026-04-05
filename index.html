@@ -4442,8 +4442,10 @@ function portalFamilia() {
   }
 
   // ── Pagos de esta familia ──
+  // Match robusto: por clienteId directo O por alumnos de la familia
+  const idsAlumnos = new Set(misAlumnos.map(a => String(a.id)));
   const misPagos = DB.pagos
-    .filter(p => String(p.clienteId) === String(clienteId))
+    .filter(p => String(p.clienteId) === String(clienteId) || idsAlumnos.has(String(p.alumnoId)))
     .sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
 
   // ── Facturas de esta familia ──
@@ -4603,23 +4605,37 @@ function portalFamilia() {
     })
   )].slice(0,6); // últimos 6 meses con actividad
 
-  let informesBlock = '';
-  if (mesesConPagos.length) {
-    const botonesInformes = mesesConPagos.map(mk => {
-      const [mes, anyo] = mk.split('|');
-      const ps  = misPagos.filter(p=>(p.mes||'').toLowerCase()===mes && (p.fecha?new Date(p.fecha).getFullYear():0)==+anyo);
-      const tot = ps.reduce((s,p)=>s+p.totalEsperado,0);
-      return '<button class="btn btn-secondary btn-sm" onclick="informeMensualFamilia(\'' + mes + '\',' + anyo + ')" ' +
-        'style="display:flex;flex-direction:column;align-items:start;padding:.5rem .75rem;height:auto">' +
-        '<span style="font-size:12px;font-weight:600">' + fmtMonth(mes) + ' ' + anyo + '</span>' +
-        '<span style="font-size:11px;color:var(--grey-2)">' + fmtEur(tot) + '</span>' +
-        '</button>';
-    }).join('');
-    informesBlock = '<div class="card" style="margin-bottom:1rem">' +
-      '<div class="card-header"><span>📊</span><div class="card-title">Informes mensuales</div></div>' +
-      '<div class="card-body"><div style="display:flex;flex-wrap:wrap;gap:.5rem">' + botonesInformes + '</div></div>' +
-      '</div>';
-  }
+  // Informes mensuales — siempre visible, selector de mes manual
+  // Los meses con pagos detectados aparecen primero con su total
+  // El resto permite generar informe aunque esté vacío
+  // Todos los meses del año — incluye verano para tecnificación y campus
+  const TODOS_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const anyoActual = new Date().getFullYear();
+  const mesesCurso = TODOS_MESES.map(m => {
+    // Buscar en año actual y anterior para cubrir todo el historial
+    const ps = misPagos.filter(p => (p.mes||'').toLowerCase() === m);
+    const anyoPago = ps.length > 0 && ps[0].fecha ? new Date(ps[0].fecha).getFullYear() : anyoActual;
+    return { mes: m, anyo: anyoPago, total: ps.reduce((s,p)=>s+p.totalEsperado,0), n: ps.length };
+  });
+
+  const botonesInformes = mesesCurso.map(({ mes, anyo, total, n }) => {
+    const tieneData = n > 0;
+    return '<button onclick="informeMensualFamilia(\'' + mes + '\',' + anyo + ')" ' +
+      'style="display:flex;flex-direction:column;align-items:center;padding:.6rem .8rem;min-width:80px;' +
+      'border-radius:8px;border:1px solid ' + (tieneData ? 'var(--green)' : '#ddd') + ';' +
+      'background:' + (tieneData ? 'var(--green-bg)' : '#fafafa') + ';cursor:pointer;gap:2px">' +
+      '<span style="font-size:12px;font-weight:600;color:' + (tieneData ? 'var(--green)' : '#999') + '">' + fmtMonth(mes).substring(0,3).toUpperCase() + '</span>' +
+      '<span style="font-size:10px;color:#888">' + anyo + '</span>' +
+      (tieneData ? '<span style="font-size:11px;font-weight:600;color:var(--green)">' + fmtEur(total) + '</span>' : '<span style="font-size:10px;color:#ccc">—</span>') +
+      '</button>';
+  }).join('');
+
+  const informesBlock = '<div class="card" style="margin-bottom:1rem">' +
+    '<div class="card-header"><span>📊</span><div class="card-title">Informes mensuales · Curso ' + anyoCurso + '-' + (anyoCurso+1) + '</div></div>' +
+    '<div class="card-body">' +
+      '<div style="font-size:12px;color:var(--grey-2);margin-bottom:.75rem">Pulsa un mes para generar el informe PDF. Los meses marcados en verde tienen pagos registrados.</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:.5rem">' + botonesInformes + '</div>' +
+    '</div></div>';
 
   // ── Render final ──
   document.getElementById('page-title').textContent = 'Mi portal';
